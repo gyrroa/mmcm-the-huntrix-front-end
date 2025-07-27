@@ -23,9 +23,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={plusJakartaSans.variable}>
       <body className="antialiased">
-        <HeaderNavbar />
         <ScrollProvider>
-          {children}
+          <HeaderNavbar />
+            {children}
         </ScrollProvider>
       </body>
     </html>

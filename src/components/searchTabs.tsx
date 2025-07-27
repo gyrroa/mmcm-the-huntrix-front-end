@@ -21,7 +21,7 @@ const SearchTabs: React.FC = () => {
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
-                            className={`w-1/3 text-[16px] py-[15px] transition-all duration-150 ${activeTab === tab
+                            className={`w-1/3 text-[16px] py-[15px] transition-all duration-150 cursor-pointer ${activeTab === tab
                                 ? 'text-[#3871C1] border-b-[3px] border-[#3871C1] font-semibold'
                                 : 'text-[#002353] border-b-[3px] border-transparent'
                                 }`}
@@ -33,7 +33,7 @@ const SearchTabs: React.FC = () => {
             </div>
 
             {/* Search Row */}
-            <div className="flex items-center justify-between gap-6 bg-white px-6 py-5 rounded-b-[8px] rounded-r-[8px] shadow border-t border-gray-200 shadow-[0_0_60px_#0023530D]">
+            <div className="flex items-center justify-between gap-6 bg-white px-6 py-5 rounded-b-[8px] rounded-r-[8px] border-t border-gray-200 shadow-[0_0_60px_#0023530D]">
                 {/* Left Fields */}
                 <div className="flex items-center gap-6">
                     {/* Common field: Location */}

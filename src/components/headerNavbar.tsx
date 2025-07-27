@@ -1,8 +1,17 @@
+'use client'
+
 import Image from 'next/image';
 import React from 'react';
 import Button from './button';
+import { useScroll } from "@/context/ScrollContext";
 
 const HeaderNavbar: React.FC = () => {
+    const { propertySectionRef } = useScroll();
+
+    const scrollToProperty = () => {
+        propertySectionRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
+
     return (
         <nav className="sticky top-0 left-0 right-0 flex items-center bg-[#FFFFFF]/50 text-[#002353] pl-[48px] pr-[46px] h-[96px] justify-between select-none border-b-2 border-[#ECF4FF] backdrop-blur-[3px] z-50">
             <div className='flex items-center gap-[48px]'>
@@ -18,13 +27,13 @@ const HeaderNavbar: React.FC = () => {
                 </div>
                 <ul className="flex list-none gap-[48px] text-[16px] font-medium">
                     <li>
-                        <a href="/rent" className="no-underline hover:underline">Rent</a>
+                        <a onClick={scrollToProperty} className="no-underline hover:underline cursor-pointer">Rent</a>
                     </li>
                     <li>
-                        <a href="/buy" className="no-underline hover:underline">Buy</a>
+                        <a onClick={scrollToProperty} className="no-underline hover:underline cursor-pointer">Buy</a>
                     </li>
                     <li>
-                        <a href="/sell" className="no-underline hover:underline">Sell</a>
+                        <a onClick={scrollToProperty} className="no-underline hover:underline cursor-pointer">Sell</a>
                     </li>
                 </ul>
             </div>
