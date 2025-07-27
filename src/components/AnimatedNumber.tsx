@@ -16,7 +16,7 @@ const AnimatedNumber: React.FC<AnimatedNumberProps> = ({ value, duration = 1.1 }
     useEffect(() => {
         if (!isInView) return;
 
-        let start = 0;
+        const start = 0;
         const end = value;
         const range = end - start;
         const increment = Math.ceil(range / (duration * 60));
