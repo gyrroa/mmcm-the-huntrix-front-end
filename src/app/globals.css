@@ -22,3 +22,7 @@ body {
   color: var(--foreground);
   font-family: 'Plus Jakarta Sans', Arial, Helvetica, sans-serif;
 }
+
+html {
+  scroll-padding-top: 120px; /* or whatever your fixed header height is */
+}

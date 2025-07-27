@@ -1,18 +1,25 @@
+'use client';
+
 import Image from "next/image";
 import Button from "../button";
+import { useScroll } from "@/context/ScrollContext";
 
 
 const BenefitSection: React.FC = () => {
+    const { propertySectionRef } = useScroll();
+
+    const scrollToProperty = () => {
+        propertySectionRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
     return (
-        <section id="heroSection" className="text-[#002353] flex py-[200px] px-[160px] gap-[64px] bg-white min-h-dvh w-full">
-            {/* Grid 1 */}
+        <section id="benefitSection" className="text-[#002353] flex py-[200px] px-[160px] gap-[64px] bg-white min-h-dvh w-full">
             <div className="flex flex-col w-fit bg-[#F7F7FD] border-[1.5px] justify-between border-[#D7E7FF] rounded-[8px] ">
                 <div className="flex flex-col gap-[24px] pt-[40px] pl-[40px] pr-[67px]">
                     <div className="flex flex-col gap-[16px] ">
                         <h1 className="text-[#002353] text-[32px] font-bold leading-[125%]">The new way to find your new home</h1>
                         <p className="text-[#002353]/70 text-[16px] font-normal leading-[160%]">Find your dream place to live in with more than 10k+ properties listed.</p>
                     </div>
-                    <Button variant="tertiary">Browse Properties</Button>
+                    <Button variant="tertiary" onClick={scrollToProperty}>Browse Properties</Button>
                 </div>
                 <Image
                     src="/benefitSection/property.svg"
@@ -22,7 +29,6 @@ const BenefitSection: React.FC = () => {
                     className="ml-auto"
                 />
             </div>
-            {/* Grid 2 */}
             <div className="w-full gap-[32px] grid grid-cols-2 grid-rows-2 gap-x-[24px] gap-y-[64px]">
                 <div>
                     <Image

@@ -1,12 +1,17 @@
 'use client'
 
+import { useScroll } from "@/context/ScrollContext";
 import Image from "next/image";
 import React, { useState } from "react";
 const tabs = ["Rent", "Buy", "Sell"];
 
 const SearchTabs: React.FC = () => {
     const [activeTab, setActiveTab] = useState("Rent");
+    const { propertySectionRef } = useScroll();
 
+    const scrollToProperty = () => {
+        propertySectionRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
     return (
         <div className="pt-[354px] absolute w-full max-w-[783px] mx-auto z-10 ">
             {/* Tabs Section */}
@@ -77,7 +82,9 @@ const SearchTabs: React.FC = () => {
                 </div>
                 <div className="h-10 w-px bg-[#D2E4FF]" />
                 {/* CTA Button */}
-                <button className="bg-[#3871C1] hover:bg-[#2f5ea6] text-white text-sm font-semibold px-6 py-3 rounded-[8px]">
+                <button
+                    onClick={scrollToProperty}
+                    className="bg-[#3871C1] hover:bg-[#2f5ea6] text-white text-sm font-semibold px-6 py-3 rounded-[8px] cursor-pointer">
                     Browse Properties
                 </button>
             </div>

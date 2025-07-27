@@ -1,7 +1,7 @@
 import Image from "next/image";
 import SearchTabs from "../searchTabs";
-import RecommendationCard from "./components/hero/RecommendationCard";
-import Analytics from "./components/hero/Analytics";
+import RecommendationCard from "../RecommendationCard";
+import Analytics from "../Analytics";
 
 const HeroSection: React.FC = () => {
     return (

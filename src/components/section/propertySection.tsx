@@ -1,0 +1,100 @@
+'use client';
+
+import PropertySelector from "../PropertySelector";
+import PropertyCard from "../PropertyCard";
+import Button from "../button";
+import { useScroll } from "@/context/ScrollContext";
+
+const PropertySection: React.FC = () => {
+    const { propertySectionRef } = useScroll();
+    return (
+        <section ref={propertySectionRef} id="propertySection" className="text-[#002353] flex flex-col pt-[8px] px-[160px] pb-[100px] gap-[64px] bg-gradient-to-b from-white to-[#D2E4FF] min-h-dvh w-full text-center items-center">
+            {/* Title */}
+            <div className="flex flex-col gap-[16px]">
+                <h1 className="font-bold text-[40px] leading-[140%]">Based on your location</h1>
+                <p className="opacity-70 text-[16px] font-normal">Some of our picked properties near you location.</p>
+            </div>
+            {/* Navigation */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:gap-0g gap-5 justify-between w-full">
+                <PropertySelector />
+                <div className="flex items-center bg-[#F9FAFF] border-2 border-[#D2E4FF] rounded-lg px-4 py-[20px] w-[352px]">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                        <path d="M11.5 21C16.7467 21 21 16.7467 21 11.5C21 6.25329 16.7467 2 11.5 2C6.25329 2 2 6.25329 2 11.5C2 16.7467 6.25329 21 11.5 21Z" stroke="#3871C1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d="M22 22L20 20" stroke="#3871C1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <input
+                        type="text"
+                        placeholder="Search..."
+                        className="ml-4 bg-transparent focus:outline-none text-[#5C7188] placeholder-[#5C7188] text-[16px] font-medium w-full opacity-50"
+                    />
+                </div>
+            </div>
+            {/* Listing */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-[32px] w-full">
+                <PropertyCard
+                    imageSrc="PropertySection/SanIsidro.svg"
+                    name="San Isidro"
+                    price={"25,000"}
+                    isPopular={true}
+                    address="152 Mabini Street, Brgy. San Isidro, Quezon City, NCR"
+                    bed="3"
+                    bath="2"
+                    size="5x7 m²"
+                />
+                <PropertyCard
+                    imageSrc="PropertySection/PalmeraHights.svg"
+                    name="Palmera Heights"
+                    price={"18,500"}
+                    isPopular={true}
+                    address="34 Sampaguita Drive, Palmera Heights Subdivision, Antipolo City, Rizal"
+                    bed="4"
+                    bath="2"
+                    size="6x7.5 m²"
+                />
+                <PropertyCard
+                    imageSrc="PropertySection/VillaEncarnacion.svg"
+                    name="Villa Encarnacion"
+                    price={"12,000"}
+                    isPopular={true}
+                    address="67 Narra Avenue, Villa Encarnacion, Iloilo City, Iloilo"
+                    bed="4"
+                    bath="2"
+                    size="8x10 m²"
+                />
+                <PropertyCard
+                    imageSrc="PropertySection/BarangayMaligaya.svg"
+                    name="Barangay Maligaya"
+                    price={"15,000"}
+                    isPopular={false}
+                    address="509 Tandang Sora Road, Brgy. Maligaya, Novaliches, Quezon City"
+                    bed="4"
+                    bath="2"
+                    size="6x8 m²"
+                />
+                <PropertyCard
+                    imageSrc="PropertySection/SitioBaybayin.svg"
+                    name="Sitio Baybayin"
+                    price={"9,500"}
+                    isPopular={false}
+                    address="21 Coastal Road, Sitio Baybayin, Brgy. Poblacion, Lipa City, Batangas"
+                    bed="2"
+                    bath="1"
+                    size="5x7.5 m²"
+                />
+                <PropertyCard
+                    imageSrc="PropertySection/BayanihanHills.svg"
+                    name="Bayanihan Hills"
+                    price={"13,800"}
+                    isPopular={false}
+                    address="88 Katipunan Extension, Bayanihan Hills, Davao City, Davao del Sur"
+                    bed="3"
+                    bath="1"
+                    size="5x7 m²"
+                />
+
+            </div>
+            <Button variant="property">Browse more properties</Button>
+        </section>
+    )
+}
+export default PropertySection;
