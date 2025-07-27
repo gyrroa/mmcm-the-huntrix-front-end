@@ -4,7 +4,7 @@ import Button from './button';
 
 const HeaderNavbar: React.FC = () => {
     return (
-        <nav className="sticky z-10 top-0 left-0 right-0 flex items-center bg-[#FFFFFF]/50 text-[#002353] pl-[48px] pr-[46px] h-[96px] justify-between select-none">
+        <nav className="sticky z-10 top-0 left-0 right-0 flex items-center bg-[#FFFFFF]/50 text-[#002353] pl-[48px] pr-[46px] h-[96px] justify-between select-none border-b-2 border-[#ECF4FF] backdrop-blur-[3px] z-50">
             <div className='flex items-center gap-[48px]'>
                 <div className='flex gap-[10px] items-center'>
                     <Image
@@ -18,13 +18,13 @@ const HeaderNavbar: React.FC = () => {
                 </div>
                 <ul className="flex list-none gap-[48px] text-[16px] font-medium">
                     <li>
-                        <a href="/" className="no-underline hover:underline">Rent</a>
+                        <a href="/rent" className="no-underline hover:underline">Rent</a>
                     </li>
                     <li>
-                        <a href="/about" className="no-underline hover:underline">Buy</a>
+                        <a href="/buy" className="no-underline hover:underline">Buy</a>
                     </li>
                     <li>
-                        <a href="/contact" className="no-underline hover:underline">Sell</a>
+                        <a href="/sell" className="no-underline hover:underline">Sell</a>
                     </li>
                 </ul>
             </div>
