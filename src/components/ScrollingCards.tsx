@@ -78,7 +78,7 @@ const ScrollingCards: React.FC = () => {
                 {[...cards, ...cards].map((card, i) => (
                     <div
                         key={i}
-                        className={`flex w-[536px] min-w-[536px] h-[194px] p-8 rounded-lg text-left gap-[24px] hover:scale-[97%] transition-all duration-300 ease-out cursor-pointer ${card.className}`}
+                        className={`flex w-[536px] min-w-[536px] h-[194px] p-8 rounded-lg text-left gap-[24px] hover:scale-[97%] transition-all duration-300 ease-out ${card.className}`}
                     >
                         <div className={`w-[64px] h-[64px] flex items-center justify-center rounded-full flex-shrink-0 ${card.divClassName}`}>
                             <div className={`rounded-full flex items-center justify-center ${card.innerDivClassName}`}>

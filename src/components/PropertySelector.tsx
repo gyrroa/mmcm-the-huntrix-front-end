@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import type { JSX } from 'react';
 
 type Tab = {
@@ -95,9 +94,12 @@ const tabs: Tab[] = [
     },
 ];
 
-const PropertySelector: React.FC = () => {
-    const [activeTab, setActiveTab] = useState('Rent');
+type PropertySelectorProps = {
+    activeTab: string;
+    onChangeTab: (label: string) => void;
+};
 
+const PropertySelector: React.FC<PropertySelectorProps> = ({ activeTab, onChangeTab }) => {
     return (
         <div className="flex bg-[#ECF4FF] border-2 border-[#D2E4FF] rounded-[8px] p-[8px] w-fit">
             {tabs.map((tab) => {
@@ -105,8 +107,8 @@ const PropertySelector: React.FC = () => {
                 return (
                     <button
                         key={tab.label}
-                        onClick={() => setActiveTab(tab.label)}
-                        className={`flex items-center gap-2 px-5 py-3 rounded-lg  border-2 font-medium transition-all cursor-pointer 
+                        onClick={() => onChangeTab(tab.label)}
+                        className={`flex items-center gap-2 px-5 py-3 rounded-lg border-2 font-medium transition-all cursor-pointer 
               ${isActive
                                 ? 'bg-white text-[#3871C1] border-[#D2E4FF]'
                                 : 'text-[#5C7188] hover:text-[#3871C1] border-transparent '

@@ -12,22 +12,25 @@ type PropertyCardProps = {
     bed: string;
     bath: string;
     size: string;
+    listingType: 'rent' | 'buy';
 };
-const PropertyCard: React.FC<PropertyCardProps> = ({ imageSrc, price, name, isPopular, address, bed, bath, size }) => {
+const PropertyCard: React.FC<PropertyCardProps> = ({ imageSrc, price, name, isPopular, address, bed, bath, size, listingType }) => {
     const [isFavorited, setIsFavorited] = useState(false);
 
     const toggleFavorite = () => {
         setIsFavorited(!isFavorited);
     };
+    const [imageError, setImageError] = useState(false);
     return (
         <div className="flex flex-col relative bg-white rounded-lg w-full gap-6 shadow-sm hover:scale-[102%] transition-transform duration-200">
             {/* Image */}
             <div className="w-full h-[200px] relative">
                 <Image
-                    src={imageSrc}
-                    alt="Property"
+                    src={imageError ? "/logo.svg" : imageSrc}
+                    alt={imageError ? "Fallback Logo" : "Property"}
                     fill
                     className="object-cover"
+                    onError={() => setImageError(true)}
                     placeholder="blur"
                     blurDataURL="/logo.svg"
                 />
@@ -69,7 +72,9 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ imageSrc, price, name, isPo
                 <div className="flex flex-col gap-[5px]">
                     <h1 className="text-xl md:text-2xl font-extrabold text-[#3871C1] leading-tight">
                         ₱{price}
-                        <span className="text-base font-medium text-[#002353]/50"> /month</span>
+                        {listingType === 'rent' && (
+                            <span className="text-base font-medium text-[#002353]/50"> /month</span>
+                        )}
                     </h1>
                     <h2 className="text-xl font-bold">{name}</h2>
                     <p className="text-sm md:text-base font-medium opacity-50 pr-[100px]">

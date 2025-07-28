@@ -63,9 +63,9 @@ const SearchTabs: React.FC = () => {
                     {activeTab === "Buy" && (
                         <>
                             <div className="h-10 w-px bg-[#D2E4FF]" />
-                            <div className="flex flex-col">
-                                <span className="text-sm text-gray-500 font-medium">Budget</span>
-                                <span className="text-lg font-semibold text-[#002353]">₱5M - ₱15M</span>
+                            <div className="flex flex-col gap-[4px]">
+                                <span className="text-[16px] text-[#001619B2] font-normal leading-[150%]">Budget</span>
+                                <span className="text-lg font-bold text-[#002353] leading-[145%] flex gap-[12px]">₱5M - ₱15M</span>
                             </div>
                         </>
                     )}
@@ -73,9 +73,9 @@ const SearchTabs: React.FC = () => {
                     {activeTab === "Sell" && (
                         <>
                             <div className="h-10 w-px bg-[#D2E4FF]" />
-                            <div className="flex flex-col">
-                                <span className="text-sm text-gray-500 font-medium">Property</span>
-                                <span className="text-lg font-semibold text-[#002353]">List your property</span>
+                            <div className="flex flex-col gap-[4px]">
+                                <span className="text-[16px] text-[#001619B2] font-normal leading-[150%]">Property</span>
+                                <span className="text-lg font-bold text-[#002353] leading-[145%] flex gap-[12px]">List your property</span>
                             </div>
                         </>
                     )}
