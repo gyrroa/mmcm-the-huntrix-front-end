@@ -2,8 +2,8 @@
 
 import Image from 'next/image';
 import React from 'react';
-import Button from './Button';
 import { useScroll } from "@/context/ScrollContext";
+import Button from './button';
 
 const HeaderNavbar: React.FC = () => {
     const { propertySectionRef } = useScroll();

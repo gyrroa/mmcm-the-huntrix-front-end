@@ -2,7 +2,7 @@
 
 import PropertySelector from "../PropertySelector";
 import PropertyCard from "../PropertyCard";
-import Button from "../Button";
+import Button from "../button";
 import { useScroll } from "@/context/ScrollContext";
 import { useEffect, useRef } from "react";
 import { useInView } from "framer-motion";

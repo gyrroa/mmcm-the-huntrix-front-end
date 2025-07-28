@@ -1,7 +1,7 @@
 'use client';
 
 import Image from "next/image";
-import Button from "../Button";
+import Button from "../button";
 import { useScroll } from "@/context/ScrollContext";
 import { motion } from "framer-motion";
 
