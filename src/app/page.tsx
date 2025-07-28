@@ -1,18 +1,19 @@
+import Footer from "@/components/footer";
 import BenefitSection from "@/components/section/benefitSection";
+import ContactSection from "@/components/section/contactSection";
 import HeroSection from "@/components/section/heroSection";
 import PropertySection from "@/components/section/propertySection";
 import ServiceSection from "@/components/section/serviceSection";
 
 export default function Home() {
   return (
-    <div className="items-center min-h-screen">
+    <div className="items-center min-h-screen w-full">
       <HeroSection />
       <BenefitSection />
       <PropertySection />
       <ServiceSection />
-      <footer className="bg-white w-full row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        sample footer content
-      </footer>
+      <ContactSection />
+      <Footer />
     </div>
   );
 }
