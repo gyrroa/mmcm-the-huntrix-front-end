@@ -28,6 +28,8 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ imageSrc, price, name, isPo
                     alt="Property"
                     fill
                     className="object-cover"
+                    placeholder="blur"
+                    blurDataURL="/logo.svg"
                 />
                 {/* Popular */}
                 {isPopular && (
@@ -84,7 +86,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ imageSrc, price, name, isPo
                     <Feature icon="/PropertySection/size.svg" label={`${size} m²`} />
                 </div>
             </div>
-        </div>  
+        </div>
     );
 };
 
