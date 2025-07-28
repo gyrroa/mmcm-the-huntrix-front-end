@@ -40,9 +40,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ imageSrc, price, name, isPo
                         <h1 className="text-[#FFFFFF] text-[12px] font-bold">Popular</h1>
                     </div>
                 )}
-
             </div>
-
             {/* Content */}
             <div className="flex flex-col gap-4 text-[#002353] px-6 py-6 text-left relative">
                 {/* Favorites */}
@@ -92,7 +90,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ imageSrc, price, name, isPo
 
 export default PropertyCard;
 
-// ✅ Reusable Feature Item (icon + label)
+// Reusable Feature Item (icon + label)
 const Feature = ({ icon, label }: { icon: string; label: string }) => (
     <div className="flex items-center gap-2 min-w-[110px]">
         <Image src={icon} alt={label} width={20} height={20} />

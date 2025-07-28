@@ -37,8 +37,6 @@ const Analytics: React.FC = () => {
                     </p>
                 </div>
             </div>
-
-
         </div>
     );
 };
