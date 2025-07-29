@@ -57,7 +57,10 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ imageSrc, price, name, isPo
             <div className="flex flex-col gap-4 text-[#002353] px-6 py-6 text-left relative">
                 {/* Favorites */}
                 <button
-                    onClick={toggleFavorite}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        toggleFavorite();
+                    }}
                     aria-label="Toggle favorite"
                     aria-pressed={isFavorited}
                     className={`absolute top-4 right-4 z-10 w-12 h-12 rounded-full flex items-center justify-center transition-colors duration-200 cursor-pointer 

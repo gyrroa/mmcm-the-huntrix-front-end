@@ -124,7 +124,7 @@ const SellPage: React.FC = () => {
                                                 onChange={(e) =>
                                                     setFormData((prev) => ({ ...prev, frequency: e.target.value }))
                                                 }
-                                                className="font-medium min-w-[120px] text-[#9AA6B2] border border-[#D2E4FF] rounded-xl text-sm px-2 py-3 text-[#002353] focus:ring-2 focus:ring-[#3871C1] focus:outline-none transition"
+                                                className="font-medium min-w-[120px] border border-[#D2E4FF] rounded-xl text-sm px-2 py-3 text-[#002353] focus:ring-2 focus:ring-[#3871C1] focus:outline-none transition"
                                             >
                                                 <option value="monthly">month</option>
                                                 <option value="biweekly">bi-weekly</option>
