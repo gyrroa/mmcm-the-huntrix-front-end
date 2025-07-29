@@ -19,6 +19,7 @@ type Property = {
     isPopular?: boolean;
     description?: string;
     amenities?: string[];
+    documents?: string[];
 };
 
 type ListingType = 'rent' | 'buy';
@@ -151,16 +152,34 @@ export default function PropertyDetailsPage() {
                 ></iframe>
             </div>
             {/* Amenities */}
-            {property.amenities && (
-                <div className="mb-10 ">
-                    <h2 className="text-2xl font-semibold mb-2">Amenities</h2>
-                    <ul className="list-disc list-inside space-y-1 text-gray-700">
-                        {property.amenities.map((amenity, i) => (
-                            <li key={i}>{amenity}</li>
-                        ))}
-                    </ul>
+            {(property.amenities || property.documents) && (
+                <div className="mb-10 grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {/* Amenities */}
+                    {property.amenities && (
+                        <div>
+                            <h2 className="text-2xl font-semibold mb-2">Amenities</h2>
+                            <ul className="list-disc list-inside space-y-1 text-gray-700">
+                                {property.amenities.map((amenity, i) => (
+                                    <li key={i}>{amenity}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+
+                    {/* Documents */}
+                    {property.documents && (
+                        <div>
+                            <h2 className="text-2xl font-semibold mb-2">Available Documents</h2>
+                            <ul className="list-disc list-inside space-y-1 text-gray-700">
+                                {property.documents.map((doc, i) => (
+                                    <li key={i}>{doc}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
                 </div>
             )}
+
             {/* Nearby Places */}
             <div className="mb-10">
                 <h2 className="text-2xl font-semibold mb-3">Nearby Places</h2>

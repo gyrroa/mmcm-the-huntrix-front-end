@@ -146,6 +146,11 @@
         "24/7 Security",
         "Landscaped Gardens"
       ],
+      "documents": [
+        "Title Deed",
+        "Tax Declaration",
+        "Deed of Absolute Sale"
+      ],
       "images": [
         "/PropertySection/buy/LagunaVista.svg",
         "/PropertySection/buy/LagunaVista.svg"
@@ -167,6 +172,11 @@
         "Covered Garage",
         "Nearby Malls"
       ],
+      "documents": [
+        "Title Deed",
+        "Tax Declaration",
+        "Deed of Absolute Sale"
+      ],
       "images": [
         "/PropertySection/buy/GreenfieldEstates.svg"
       ]
@@ -186,6 +196,11 @@
         "Spacious Garage",
         "CCTV Surveillance",
         "Modern Kitchen"
+      ],
+      "documents": [
+        "Title Deed",
+        "Tax Declaration",
+        "Deed of Absolute Sale"
       ],
       "images": [
         "/PropertySection/buy/MapleResidences.svg"
