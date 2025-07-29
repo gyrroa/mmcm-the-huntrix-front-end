@@ -1,4 +1,3 @@
-import Footer from "@/components/footer";
 import BenefitSection from "@/components/section/benefitSection";
 import ContactSection from "@/components/section/contactSection";
 import HeroSection from "@/components/section/heroSection";
@@ -13,7 +12,6 @@ export default function Home() {
       <PropertySection />
       <ServiceSection />
       <ContactSection />
-      <Footer />
     </div>
   );
 }

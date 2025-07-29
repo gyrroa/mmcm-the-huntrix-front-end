@@ -1,0 +1,195 @@
+{
+  "rent": [
+    {
+      "slug": "san-isidro",
+      "name": "San Isidro",
+      "price": "25,000",
+      "address": "152 Mabini Street, Brgy. San Isidro, Quezon City, NCR",
+      "bed": "3",
+      "bath": "2",
+      "size": "5x7 m²",
+      "isPopular": true,
+      "description": "A spacious family-friendly rental located in a quiet neighborhood, ideal for young professionals or growing families.",
+      "amenities": [
+        "Gated Community",
+        "24/7 Security",
+        "Parking Space",
+        "Pet Friendly"
+      ],
+      "images": [
+        "/PropertySection/rent/SanIsidro_1.svg",
+        "/PropertySection/rent/SanIsidro_2.svg",
+        "/PropertySection/rent/SanIsidro_3.svg"
+      ]
+    },
+    {
+      "slug": "palmera-heights",
+      "name": "Palmera Heights",
+      "price": "18,500",
+      "address": "34 Sampaguita Drive, Palmera Heights Subdivision, Antipolo City, Rizal",
+      "bed": "4",
+      "bath": "2",
+      "size": "6x7.5 m²",
+      "isPopular": true,
+      "description": "A modern rental home perfect for larger families seeking comfort and space with easy access to city amenities.",
+      "amenities": [
+        "Covered Parking",
+        "Gated Entry",
+        "Spacious Yard",
+        "Nearby Schools"
+      ],
+      "images": [
+        "/PropertySection/rent/PalmeraHights.svg",
+        "/PropertySection/rent/PalmeraHights.svg",
+        "/PropertySection/rent/PalmeraHights.svg"
+      ]
+    },
+    {
+      "slug": "villa-encarnacion",
+      "name": "Villa Encarnacion",
+      "price": "12,000",
+      "address": "67 Narra Avenue, Villa Encarnacion, Iloilo City, Iloilo",
+      "bed": "4",
+      "bath": "2",
+      "size": "8x10 m²",
+      "isPopular": true,
+      "description": "A well-maintained home in a peaceful village with easy access to local markets and transport hubs.",
+      "amenities": [
+        "Community Park",
+        "Public Transport Access",
+        "Pet Friendly",
+        "Water Tank"
+      ],
+      "images": [
+        "/PropertySection/rent/VillaEncarnacion.svg",
+        "/PropertySection/rent/VillaEncarnacion.svg",
+        "/PropertySection/rent/VillaEncarnacion.svg"
+      ]
+    },
+    {
+      "slug": "barangay-maligaya",
+      "name": "Barangay Maligaya",
+      "price": "15,000",
+      "address": "509 Tandang Sora Road, Brgy. Maligaya, Novaliches, Quezon City",
+      "bed": "4",
+      "bath": "2",
+      "size": "6x8 m²",
+      "isPopular": false,
+      "description": "Affordable and spacious house ideal for tenants looking for a secure and accessible location in Quezon City.",
+      "amenities": [
+        "Gated Perimeter",
+        "Laundry Area",
+        "Proximity to Groceries",
+        "Covered Porch"
+      ],
+      "images": [
+        "/PropertySection/rent/BarangayMaligaya.svg"
+      ]
+    },
+    {
+      "slug": "sitio-baybayin",
+      "name": "Sitio Baybayin",
+      "price": "9,500",
+      "address": "21 Coastal Road, Sitio Baybayin, Brgy. Poblacion, Lipa City, Batangas",
+      "bed": "2",
+      "bath": "1",
+      "size": "5x7.5 m²",
+      "isPopular": false,
+      "description": "A budget-friendly coastal home, perfect for those seeking tranquility near the sea.",
+      "amenities": [
+        "Near Beach",
+        "Garden Area",
+        "Secure Windows",
+        "Quiet Community"
+      ],
+      "images": [
+        "/PropertySection/rent/SitioBaybayin.svg"
+      ]
+    },
+    {
+      "slug": "bayanihan-hills",
+      "name": "Bayanihan Hills",
+      "price": "13,800",
+      "address": "88 Katipunan Extension, Bayanihan Hills, Davao City, Davao del Sur",
+      "bed": "3",
+      "bath": "1",
+      "size": "5x7 m²",
+      "isPopular": false,
+      "description": "Simple and clean living space in a well-developed residential area with friendly neighbors.",
+      "amenities": [
+        "Bike Lane Access",
+        "Barangay Hall Nearby",
+        "Natural Ventilation",
+        "Street Lighting"
+      ],
+      "images": [
+        "/PropertySection/rent/BayanihanHills.svg",
+        "/PropertySection/rent/BayanihanHills.svg",
+        "/PropertySection/rent/BayanihanHills.svg"
+      ]
+    }
+  ],
+  "buy": [
+    {
+      "slug": "laguna-vista",
+      "name": "Laguna Vista",
+      "price": "2,750,000 – 3,200,000",
+      "address": "Brgy. Calamba, Laguna",
+      "bed": "4",
+      "bath": "3",
+      "size": "10x12 m²",
+      "isPopular": true,
+      "description": "A premium residential property nestled in the heart of Laguna, featuring modern amenities and green surroundings.",
+      "amenities": [
+        "Swimming Pool",
+        "Clubhouse",
+        "24/7 Security",
+        "Landscaped Gardens"
+      ],
+      "images": [
+        "/PropertySection/buy/LagunaVista.svg",
+        "/PropertySection/buy/LagunaVista.svg"
+      ]
+    },
+    {
+      "slug": "greenfield-estates",
+      "name": "Greenfield Estates",
+      "price": "2,750,000",
+      "address": "Santa Rosa, Laguna",
+      "bed": "3",
+      "bath": "2",
+      "size": "9x10 m²",
+      "isPopular": true,
+      "description": "An ideal home for families looking for suburban comfort with quick access to commercial areas.",
+      "amenities": [
+        "Playground",
+        "Jogging Path",
+        "Covered Garage",
+        "Nearby Malls"
+      ],
+      "images": [
+        "/PropertySection/buy/GreenfieldEstates.svg"
+      ]
+    },
+    {
+      "slug": "maple-residences",
+      "name": "Maple Residences",
+      "price": "3,750,000 - 4,100,000",
+      "address": "Maple Ave., Pasig City",
+      "bed": "5",
+      "bath": "4",
+      "size": "12x14 m²",
+      "isPopular": false,
+      "description": "A luxurious city home with spacious interiors, ideal for large families who prefer central living.",
+      "amenities": [
+        "Roof Deck",
+        "Spacious Garage",
+        "CCTV Surveillance",
+        "Modern Kitchen"
+      ],
+      "images": [
+        "/PropertySection/buy/MapleResidences.svg"
+      ]
+    }
+  ]
+}

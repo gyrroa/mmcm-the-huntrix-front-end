@@ -4,6 +4,7 @@ import "./globals.css";
 import HeaderNavbar from "@/components/headerNavbar";
 import { ScrollProvider } from "@/context/ScrollContext";
 import Script from "next/script";
+import Footer from "@/components/footer";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta-sans",
@@ -33,6 +34,7 @@ export default function RootLayout({
         <ScrollProvider>
           <HeaderNavbar />
           {children}
+          <Footer />
         </ScrollProvider>
       </body>
     </html>
