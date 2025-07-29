@@ -2,7 +2,7 @@ import Image from "next/image";
 
 const Analytics: React.FC = () => {
     return (
-        <div className="mt-[260px] flex justify-between max-w-[783px]">
+        <div className="mt-[260px] flex justify-between max-w-[783px] pr-[100px]">
             <div className="gap-[24px] flex flex-col">
                 <Image
                     alt="Renters"

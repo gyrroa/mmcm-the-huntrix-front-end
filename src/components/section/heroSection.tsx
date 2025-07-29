@@ -31,7 +31,7 @@ const HeroSection: React.FC = () => {
                     </h2>
                 </div>
 
-                    <SearchTabs />
+                <SearchTabs />
 
                 <motion.div
                     initial={{ opacity: 0, y: 30 }}
