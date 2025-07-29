@@ -71,7 +71,7 @@ export default function BrowsePropertiesPage() {
             </div>
 
             {/* Search bar */}
-            <div className="flex justify-center mb-10">
+            <div className="flex justify-center mb-5">
                 <div className="flex items-center bg-[#F9FAFF] border-2 border-[#D2E4FF] rounded-lg px-4 py-[16px] w-full max-w-xl">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none">
                         <path
@@ -100,7 +100,6 @@ export default function BrowsePropertiesPage() {
             </div>
             {/* Filter Controls */}
             <div className="flex flex-wrap justify-center gap-4 mb-10">
-
                 {/* Bedrooms Filter */}
                 <div className="relative w-[200px]">
                     <select

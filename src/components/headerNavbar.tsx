@@ -2,17 +2,11 @@
 
 import Image from 'next/image';
 import React from 'react';
-import { useScroll } from "@/context/ScrollContext";
 import Button from './button';
 import { useRouter } from 'next/navigation';
 
 const HeaderNavbar: React.FC = () => {
     const router = useRouter();
-    const { propertySectionRef } = useScroll();
-
-    const scrollToProperty = () => {
-        propertySectionRef.current?.scrollIntoView({ behavior: "smooth" });
-    };
 
     return (
         <nav className="sticky top-0 left-0 right-0 flex items-center bg-[#FFFFFF]/50 text-[#002353] pl-[48px] pr-[46px] h-[96px] justify-between select-none border-b-2 border-[#ECF4FF] backdrop-blur-[3px] z-50">
