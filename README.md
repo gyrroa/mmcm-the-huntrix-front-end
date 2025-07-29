@@ -31,7 +31,7 @@ Hiraya Homes is a real estate listing platform built with **Next.js**, allowing 
 | Icons          | [React Icons](https://react-icons.github.io/react-icons) |
 | Image Handling | `next/image` for optimization |
 | State & Hooks  | React `useState`, `useEffect` |
-| Chatbot        | [Noupe](https://noupe.ai)     |
+| Chatbot        | [Noupe](https://noupe.com)     |
 | Data           | Static `properties.json` file |
 | Package Manager| npm                           |
 
