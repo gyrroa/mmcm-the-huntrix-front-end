@@ -35,7 +35,7 @@ const HeaderNavbar: React.FC = () => {
                         <a onClick={() => router.push("/browse/buy")} className="no-underline hover:underline cursor-pointer">Buy</a>
                     </li>
                     <li>
-                        <a onClick={scrollToProperty} className="no-underline hover:underline cursor-pointer">Sell</a>
+                        <a onClick={() => router.push("/sell")} className="no-underline hover:underline cursor-pointer">Sell</a>
                     </li>
                 </ul>
             </div>

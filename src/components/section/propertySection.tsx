@@ -52,7 +52,7 @@ const PropertySection: React.FC = () => {
                     </div>
 
                     <div className="w-full flex justify-center mt-10 col-span-3">
-                        <Button variant="primary" onClick={() => router.push("sell")}>Start Selling</Button>
+                        <Button variant="primary" onClick={() => router.push("/sell")}>Start Selling</Button>
                     </div>
                 </>
             );
