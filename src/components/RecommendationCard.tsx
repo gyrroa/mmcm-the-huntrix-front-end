@@ -6,7 +6,7 @@ const RecommendationCard: React.FC = () => {
         <div className="absolute flex flex-col bg-white rounded-[8px] p-6 w-fit gap-6">
             <div className="flex gap-[16px]">
                 <Image
-                    src="/recoCardProfile.svg"
+                    src="/heroSection/recoCardProfile.svg"
                     alt="User Avatar"
                     width={64}
                     height={64}
