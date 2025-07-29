@@ -1,4 +1,5 @@
-<img width="1883" height="1057" alt="preview_browse" src="https://github.com/user-attachments/assets/8f5da620-f247-4ddc-9538-2917e5fd91da" /># 🏡 Hiraya Homes – Real Estate Listing Platform
+<img width="1887" height="1064" alt="image" src="https://github.com/user-attachments/assets/722d5a65-b311-4cdb-8708-84a7c7bee6d8" />
+# 🏡 Hiraya Homes – Real Estate Listing Platform
 
 Hiraya Homes is a real estate listing platform built with **Next.js**, allowing users to **browse**, **filter**, and **submit** property listings for **rent** or **sale**. This app provides a modern UI, clean property cards, and a structured submission form for property sellers.
 
