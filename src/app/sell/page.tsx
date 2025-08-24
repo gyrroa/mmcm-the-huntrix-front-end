@@ -189,7 +189,7 @@ const SellPage: React.FC = () => {
 
     return (
         <section
-            className="relative min-h-screen pt-[80px] pb-24 px-6 text-[#002353] bg-gradient-to-b from-white to-[#D2E4FF]"
+            className="relative min-h-screen pt-[30px] pb-24 px-6 text-[#002353] bg-gradient-to-b from-white to-[#D2E4FF]"
         >
             {/* subtle backdrop pattern */}
             <div className="pointer-events-none absolute inset-0 opacity-[0.08] [background:radial-gradient(circle_at_1px_1px,#0a3a821a_1px,transparent_0)] bg-[size:24px_24px]" />

@@ -227,7 +227,7 @@ const Dashboard: React.FC = () => {
         <div className="min-h-screen text-[#002353] bg-gradient-to-b from-white to-[#D2E4FF]">
 
             {/* Main */}
-            <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-[70px] py-8">
+            <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-[70px] lg:py-8">
                 {/* Header */}
                 <header className="top-0 bg-white/70 backdrop-blur-md supports-[backdrop-filter]:bg-white/60 border-b border-[#E8EEF8]">
                     <div className="max-w-7xl mx-auto py-4">
@@ -250,7 +250,7 @@ const Dashboard: React.FC = () => {
                     </div>
                 </header>
                 {/* Stats */}
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-10 mt-10">
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-10 mt-5">
                     {/* Current Tier — diamond gets its own UI */}
                     <StatsCard
                         title="Current Tier"

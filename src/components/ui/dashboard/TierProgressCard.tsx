@@ -551,7 +551,7 @@ const TierProgressCard: React.FC<TierProgressCardProps> = ({
               className="inline-flex items-center gap-2 text-sm font-medium rounded-full px-3 py-1.5 border cursor-pointer"
               style={{ color: currentTheme.gradTo, borderColor: currentTheme.softBorder }}
             >
-              View all tiers <ArrowRight className="w-4 h-4" />
+              View tiers <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         )}

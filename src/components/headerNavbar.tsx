@@ -149,7 +149,7 @@ const HeaderNavbar: React.FC = () => {
       {/* Mobile hamburger */}
       <button
         ref={buttonRef}
-        className="md:hidden text-[#002353] focus:outline-none"
+        className="md:hidden text-[#002353] focus:outline-none text-[18px]"
         onClick={() => setOpen(!open)}
         aria-expanded={open}
         aria-controls="mobile-menu"

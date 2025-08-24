@@ -15,7 +15,7 @@ const ServiceSection: React.FC = () => {
             ref={sectionRef}
             id="serviceSection"
             // Mobile defaults + exact original restored on lg+
-            className="flex min-h-screen lg:min-h-dvh w-full flex-col items-center justify-center gap-10 lg:gap-[64px] pb-0 lg:pb-[100px] bg-[#002353] text-center"
+            className="flex min-h-screen lg:min-h-dvh w-full flex-col items-center justify-center gap-10 lg:gap-[64px] lg:pb-[100px] bg-[#002353] text-center py-20"
             initial={{ opacity: 0, y: 0 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.7, ease: "easeOut" }}
@@ -55,7 +55,7 @@ const ServiceSection: React.FC = () => {
 
             {/* Analytics Section */}
             <div className="w-full px-4 sm:px-6 md:px-10 lg:px-[160px] text-white">
-                <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-center gap-4 lg:gap-[52px] py-4 lg:py-[13px] lg:h-[90px]">
+                <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-center gap-4 lg:gap-[52px] pb-4 lg:py-[13px] lg:h-[90px]">
                     {/* Item 1 */}
                     <div className="flex flex-col items-center gap-[8px]">
                         <h1 className="font-bold leading-[140%] text-3xl sm:text-[32px] lg:text-[40px]">

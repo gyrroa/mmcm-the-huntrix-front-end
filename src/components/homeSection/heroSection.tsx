@@ -11,10 +11,10 @@ const HeroSection: React.FC = () => {
       className="
         text-[#002353]
         w-full
-        mt-0 md:mt-[-96px]
-        px-4 sm:px-6 lg:px-[70px]
-        pt-20 sm:pt-24 md:pt-[184px]
-        min-h-[100svh] md:min-h-dvh
+        mt-0 lg:mt-[-96px]
+        px-4 sm:px-6 xl:px-[70px]
+        pt-5 sm:pt-24 lg:pt-[184px]
+        min-h-[80svh] lg:min-h-dvh 
       "
       initial={{ opacity: 0, y: 0 }}
       animate={{ opacity: 1, y: 0 }}
@@ -23,10 +23,10 @@ const HeroSection: React.FC = () => {
       <motion.div
         className="
           relative overflow-hidden flex w-full
-          min-h-[68svh] sm:min-h-[70svh] md:min-h-[70dvh]
-          rounded-2xl sm:rounded-[40px] lg:rounded-[50px]
-          pl-4 sm:pl-8 md:pl-[60px] lg:pl-[90px]
-          pr-4
+          min-h-[68svh] sm:min-h-[70svh] lg:min-h-[70dvh]
+          rounded-2xl sm:rounded-[40px] xl:rounded-[50px]
+          pl-4 sm:pl-8 lg:pl-[60px] xl:pl-[90px]
+          pr-4 
         "
       >
         {/* Background image */}
@@ -36,18 +36,18 @@ const HeroSection: React.FC = () => {
           fill
           priority
           sizes="100vw"
-          className="object-cover object-right-bottom md:object-[right_75%] z-0 pointer-events-none select-none"
+          className="object-cover object-right-bottom lg:object-[right_75%] z-0 pointer-events-none select-none blur-[5px] 2xl:blur-none opacity-50 2xl:opacity-100 transition-all duration-200"
           aria-hidden
         />
 
         {/* Top blur gradient — shown on mobile, off on md+ like your previous setup */}
         <div
           aria-hidden
-          className="absolute inset-x-0 top-0 h-200 md:hidden z-10 pointer-events-none"
+          className="absolute inset-x-0 top-0 h-200 lg:hidden z-10 pointer-events-none"
         />
 
         {/* Soft overlay on small screens for readability */}
-        <div className="absolute inset-0 md:hidden bg-gradient-to-r from-[#ecf1f8]/95 via-[#ecf1f8]/60 to-transparent z-0" />
+        <div className="absolute inset-0 lg:hidden bg-gradient-to-r from-[#ecf1f8]/95 via-[#ecf1f8]/60 to-transparent z-0" />
 
         {/* Content */}
         <motion.div
@@ -55,21 +55,21 @@ const HeroSection: React.FC = () => {
             relative z-10
             flex flex-col
             w-full max-w-[1100px]
-            mt-8 sm:mt-12 md:mt-[92px]
+            mt-8 sm:mt-12 lg:mt-[92px]
             justify-between
             items-start
-            pb-6 sm:pb-10 md:pb-[90px]
+            pb-6 sm:pb-10 lg:pb-[90px]
             gap-6 sm:gap-8
           "
           initial={{ opacity: 0, x: -50 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.7, delay: 0.1 }}
         >
-          <div className="flex flex-col gap-3 sm:gap-6 max-w-[760px] md:bg-transparent md:backdrop-blur-none bg-[white]/80 backdrop-blur-[10px] rounded-[30px] md:rounded-none p-4 md:p-none">
+          <div className="flex flex-col gap-3 sm:gap-6 max-w-[760px] xl:bg-transparent xl:backdrop-blur-none bg-[white]/80 backdrop-blur-[10px] rounded-[30px] lg:rounded-none p-4 lg:p-none">
             <h1
               className="
                 font-bold leading-[1.1]
-                text-4xl sm:text-5xl md:text-6xl lg:text-[77px]
+                text-4xl sm:text-5xl lg:text-6xl xl:text-[77px]
                 tracking-[-0.02em]
               "
             >
@@ -79,7 +79,7 @@ const HeroSection: React.FC = () => {
             <p
               className="
                 font-normal leading-[1.6] text-[#3871C1]
-                text-base sm:text-lg md:text-xl lg:text-2xl
+                text-base sm:text-lg lg:text-xl xl:text-2xl
                 max-w-[58ch]
               "
             >

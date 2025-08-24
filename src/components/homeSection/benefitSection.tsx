@@ -10,7 +10,7 @@ const BenefitSection: React.FC = () => {
             className="
         text-[#002353] bg-white min-h-dvh w-full
         flex flex-col xl:flex-row
-        pt-16 md:pt-24 xl:pt-[160px]
+        pt-0 md:pt-24 xl:pt-[160px]
         pb-12 md:pb-16 xl:pb-[80px]
         px-4 md:px-10 xl:px-[160px]
         gap-8 md:gap-10 xl:gap-[84px]
@@ -21,10 +21,10 @@ const BenefitSection: React.FC = () => {
             viewport={{ once: true, amount: 0.3 }}
         >
             {/* Left box (desktop unchanged) */}
-            <div className="flex flex-col w-full xl:w-fit justify-between rounded-[8px] gap-[30px]">
+            <div className="flex flex-col w-full xl:w-fit justify-between rounded-[8px] gap-[30px] py-10">
                 <div className="flex flex-col gap-[35px]">
                     <h1 className="text-[#3871C1] text-[20px] 2xl:text-[27.5px] font-medium leading-[125%] tracking-[2.91px]">
-                        Who are we
+                        WHO ARE WE
                     </h1>
                     <p className="text-[#002353] text-[40px] 2xl:text-[55px] font-bold leading-[117.5%]">
                         Assisting individuals in locating the appropriate real estate.
@@ -39,9 +39,9 @@ const BenefitSection: React.FC = () => {
                 <div className="flex flex-col gap-[30px] 2xl:pr-[200px]">
                     <div className="flex px-[40px] py-[30px] gap-[40px] bg-white rounded-[30px] shadow-[4px_10px_30px_0_rgba(0,0,0,0.06)] w-full hover:scale-101 duration-150 transition-all">
                         <Image alt="guide" src="benefitSection/guide.svg" width={55} height={55} />
-                        <div className="flex flex-col gap-[20px]">
-                            <h1 className="text-[#3871C1] text-xl 2xl:text-[27.5px] font-normal">Personalized Guidance</h1>
-                            <p className="text-[#00235380] 2xl:text-[22px] leading-[160%]">
+                        <div className="flex flex-col gap-[5px]">
+                            <h1 className="text-[#3871C1] text-xl 2xl:text-[22.5px] font-normal">Personalized Guidance</h1>
+                            <p className="text-[#00235380] 2xl:text-[17px] leading-[160%]">
                                 Get expert advice and tailored recommendations that suit your needs and goals.
                             </p>
                         </div>
@@ -49,9 +49,9 @@ const BenefitSection: React.FC = () => {
 
                     <div className="flex px-[40px] py-[30px] gap-[40px] bg-white rounded-[30px] shadow-[4px_10px_30px_0_rgba(0,0,0,0.06)] w-full hover:scale-101 duration-150 transition-all">
                         <Image alt="trust" src="benefitSection/trust.svg" width={55} height={55} />
-                        <div className="flex flex-col gap-[20px]">
-                            <h1 className="text-[#3871C1] text-xl 2xl:text-[27.5px] font-normal">Trusted Network</h1>
-                            <p className="text-[#00235380] 2xl:text-[22px] leading-[160%]">
+                        <div className="flex flex-col gap-[5px]">
+                            <h1 className="text-[#3871C1] text-xl 2xl:text-[22.5px] font-normal">Trusted Network</h1>
+                            <p className="text-[#00235380] 2xl:text-[17px] leading-[160%]">
                                 Work with a reliable team of real estate professionals backed by years of experience.
                             </p>
                         </div>
