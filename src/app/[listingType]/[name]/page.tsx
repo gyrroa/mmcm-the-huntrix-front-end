@@ -7,7 +7,7 @@ import propertyData from '@/data/properties.json';
 import Button from '@/components/button';
 import { useState } from 'react';
 import ReviewSection from '@/components/homeSection/reviewSection';
-import ScheduleVisitModal from '@/components/ui/ScheduleVisitModal';
+import ScheduleVisitModal from '@/components/ui/home/ScheduleVisitModal';
 
 type Property = {
     slug: string;
@@ -268,7 +268,7 @@ export default function PropertyDetailsPage() {
                         </div>
                         <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
                             <Button>Contact via Email</Button>
-                            <Button 
+                            <Button
                                 variant="quaternary"
                                 onClick={() => setShowVisitModal(true)}
                             >
@@ -281,12 +281,10 @@ export default function PropertyDetailsPage() {
             </motion.div>
 
             <ScheduleVisitModal
-            isOpen={showVisitModal}
-            onClose={() => setShowVisitModal(false)}
-            propertyName="Luxury Family Home"
-            propertyImage="/images/properties/property1.jpg"
+                isOpen={showVisitModal}
+                onClose={() => setShowVisitModal(false)}
+                propertyName={property.name}
             />
-
 
             {/* Image Modal */}
             {activeImageIndex !== null && (
