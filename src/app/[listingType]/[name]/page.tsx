@@ -28,6 +28,7 @@ type ListingType = 'rent' | 'buy';
 
 // ---------- Page ----------
 export default function PropertyDetailsPage() {
+    const [showVisitModal, setShowVisitModal] = useState(false);
     const router = useRouter();
     const params = useParams();
     const listingType = params.listingType as ListingType;
@@ -56,8 +57,6 @@ export default function PropertyDetailsPage() {
     };
 
     const isRent = listingType === 'rent';
-
-    const [showVisitModal, setShowVisitModal] = useState(false);
 
     return (
         <motion.div

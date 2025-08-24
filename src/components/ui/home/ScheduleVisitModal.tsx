@@ -2,6 +2,74 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 
+/* ---------- Module-level constants & helpers (stable for hooks) ---------- */
+
+const BASE_TIMES: string[] = [
+  '9:00 AM', '10:00 AM', '11:00 AM',
+  '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM',
+];
+
+// Mock data for unavailable dates (Dec 2024)
+const UNAVAILABLE_DATES: Readonly<Date[]> = Object.freeze([
+  new Date(2024, 11, 15),
+  new Date(2024, 11, 16),
+  new Date(2024, 11, 20),
+  new Date(2024, 11, 25),
+  new Date(2024, 11, 26),
+  new Date(2024, 11, 30),
+]);
+
+const isSameDay = (a: Date, b: Date) =>
+  a.getFullYear() === b.getFullYear() &&
+  a.getMonth() === b.getMonth() &&
+  a.getDate() === b.getDate();
+
+const parseTimeToMinutes = (time: string) => {
+  // "h:mm AM/PM" → minutes from midnight
+  const [t, meridiem] = time.split(' ');
+  const [hh, mm] = t.split(':').map((n) => parseInt(n, 10));
+  let h24 = hh % 12;
+  if (meridiem === 'PM') h24 += 12;
+  return h24 * 60 + (mm || 0);
+};
+
+const todayMinutes = () => {
+  const now = new Date();
+  return now.getHours() * 60 + now.getMinutes();
+};
+
+const isDateInPast = (date: Date) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d < today;
+};
+
+const isDateUnavailable = (date: Date) =>
+  UNAVAILABLE_DATES.some((u) => isSameDay(u, date));
+
+const getDaysInMonth = (date: Date) => {
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  return {
+    daysInMonth: lastDay.getDate(),
+    startingDayOfWeek: firstDay.getDay(), // 0 (Sun) - 6 (Sat)
+  };
+};
+
+const formatDate = (date: Date) =>
+  date.toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
+/* ------------------------------------------------------------------------ */
+
 interface ScheduleVisitModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -18,81 +86,17 @@ const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [successOpen, setSuccessOpen] = useState(false);
 
-  // --- Mock data for unavailable dates (Dec 2024) ---
-  const unavailableDates = [
-    new Date(2024, 11, 15),
-    new Date(2024, 11, 16),
-    new Date(2024, 11, 20),
-    new Date(2024, 11, 25),
-    new Date(2024, 11, 26),
-    new Date(2024, 11, 30),
-  ];
-
-  const baseTimes = [
-    '9:00 AM', '10:00 AM', '11:00 AM',
-    '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM'
-  ];
-
-  const isSameDay = (a: Date, b: Date) =>
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate();
-
-  const isDateUnavailable = (date: Date) =>
-    unavailableDates.some((u) => isSameDay(u, date));
-
-  const isDateInPast = (date: Date) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const d = new Date(date);
-    d.setHours(0, 0, 0, 0);
-    return d < today;
-  };
-
-  const parseTimeToMinutes = (time: string) => {
-    // "h:mm AM/PM" → minutes from midnight
-    const [t, meridiem] = time.split(' ');
-    const [hh, mm] = t.split(':').map((n) => parseInt(n, 10));
-    let h24 = hh % 12;
-    if (meridiem === 'PM') h24 += 12;
-    return h24 * 60 + (mm || 0);
-  };
-
-  const todayMinutes = () => {
-    const now = new Date();
-    return now.getHours() * 60 + now.getMinutes();
-  };
-
   // If the selected date is today, only show future times
-  const availableTimes = useMemo(() => {
-    if (!selectedDate) return baseTimes;
+  const availableTimes = useMemo<string[]>(() => {
+    if (!selectedDate) return BASE_TIMES;
     if (isSameDay(selectedDate, new Date())) {
       const nowMin = todayMinutes();
-      return baseTimes.filter((t) => parseTimeToMinutes(t) > nowMin);
+      return BASE_TIMES.filter((t) => parseTimeToMinutes(t) > nowMin);
     }
-    return baseTimes;
+    return BASE_TIMES;
   }, [selectedDate]);
 
-  const getDaysInMonth = (date: Date) => {
-    const year = date.getFullYear();
-    const month = date.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    return {
-      daysInMonth: lastDay.getDate(),
-      startingDayOfWeek: firstDay.getDay(), // 0 (Sun) - 6 (Sat)
-    };
-  };
-
   const { daysInMonth, startingDayOfWeek } = getDaysInMonth(currentMonth);
-
-  const formatDate = (date: Date) =>
-    date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
 
   const handleDateSelect = (day: number) => {
     const date = new Date(
@@ -145,30 +149,46 @@ const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
     return () => window.removeEventListener('keydown', onKey);
   }, [isOpen, onClose]);
 
-  if (!isOpen) return (
-    <>
-      {successOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/30" onClick={() => setSuccessOpen(false)} />
-          <div className="relative bg-white rounded-2xl p-8 max-w-md w-full text-center shadow-xl">
-            <svg className="w-16 h-16 text-green-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-            <h2 className="text-xl font-bold mb-2">Visit Scheduled!</h2>
-            <p className="text-gray-600 mb-6">
-              Your property visit has been successfully scheduled.
-            </p>
-            <button
+  // When modal is closed, still allow success modal to show
+  if (!isOpen) {
+    return (
+      <>
+        {successOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div
+              className="absolute inset-0 bg-black/30"
               onClick={() => setSuccessOpen(false)}
-              className="px-6 py-2 rounded-lg bg-[#3871C1] text-white hover:bg-[#2f5ea6] transition-colors"
-            >
-              OK
-            </button>
+            />
+            <div className="relative bg-white rounded-2xl p-8 max-w-md w-full text-center shadow-xl">
+              <svg
+                className="w-16 h-16 text-green-500 mx-auto mb-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+              <h2 className="text-xl font-bold mb-2">Visit Scheduled!</h2>
+              <p className="text-gray-600 mb-6">
+                Your property visit has been successfully scheduled.
+              </p>
+              <button
+                onClick={() => setSuccessOpen(false)}
+                className="px-6 py-2 rounded-lg bg-[#3871C1] text-white hover:bg-[#2f5ea6] transition-colors"
+              >
+                OK
+              </button>
+            </div>
           </div>
-        </div>
-      )}
-    </>
-  );
+        )}
+      </>
+    );
+  }
 
   return (
     <>
@@ -190,20 +210,31 @@ const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
           {/* Header */}
           <div className="flex items-start justify-between gap-4 p-6 border-b bg-white/70 backdrop-blur-sm">
             <div className="min-w-0">
-              <h2 id="schedule-visit-title" className="text-xl md:text-2xl font-bold text-[#002353]">
+              <h2
+                id="schedule-visit-title"
+                className="text-xl md:text-2xl font-bold text-[#002353]"
+              >
                 Schedule a Visit
               </h2>
-              <p className="text-sm text-[#5C7188] truncate">
-                {propertyName}
-              </p>
+              <p className="text-sm text-[#5C7188] truncate">{propertyName}</p>
             </div>
             <button
               onClick={onClose}
               aria-label="Close"
               className="text-[#5C7188] hover:text-[#002353] transition-colors p-2 rounded-lg hover:bg-gray-100"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
@@ -219,13 +250,26 @@ const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
                     aria-label="Previous month"
                     className="p-2 rounded-lg hover:bg-white transition-colors"
                   >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7"/>
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 19l-7-7 7-7"
+                      />
                     </svg>
                   </button>
 
                   <h4 className="text-base md:text-lg font-semibold text-[#002353]">
-                    {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                    {currentMonth.toLocaleDateString('en-US', {
+                      month: 'long',
+                      year: 'numeric',
+                    })}
                   </h4>
 
                   <button
@@ -233,15 +277,27 @@ const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
                     aria-label="Next month"
                     className="p-2 rounded-lg hover:bg-white transition-colors"
                   >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/>
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5l7 7-7 7"
+                      />
                     </svg>
                   </button>
                 </div>
 
                 <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium text-[#5C7188] mb-2">
-                  {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((d) => (
-                    <div key={d} className="py-2">{d}</div>
+                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
+                    <div key={d} className="py-2">
+                      {d}
+                    </div>
                   ))}
                 </div>
 
@@ -252,14 +308,18 @@ const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
 
                   {Array.from({ length: daysInMonth }, (_, i) => {
                     const day = i + 1;
-                    const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
-                    const isUnavailable = isDateUnavailable(date);
-                    const isPast = isDateInPast(date);
+                    const date = new Date(
+                      currentMonth.getFullYear(),
+                      currentMonth.getMonth(),
+                      day
+                    );
+                    const unavailable = isDateUnavailable(date);
+                    const past = isDateInPast(date);
                     const selected =
                       !!selectedDate && isSameDay(date, selectedDate);
                     const today = isSameDay(date, new Date());
 
-                    const disabled = isPast || isUnavailable;
+                    const disabled = past || unavailable;
 
                     return (
                       <button
@@ -277,7 +337,7 @@ const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
                           today && !selected && !disabled
                             ? 'ring-1 ring-[#C9DBEE]'
                             : '',
-                          isUnavailable ? 'line-through' : ''
+                          unavailable ? 'line-through' : '',
                         ].join(' ')}
                         aria-label={date.toDateString()}
                         aria-pressed={selected}
@@ -304,12 +364,17 @@ const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
 
               {/* Time selection */}
               <div className="bg-white border border-[#E6EEF9] rounded-xl p-4 md:p-5 shadow-sm">
-                <h3 className="text-lg font-semibold text-[#002353] mb-2">Select Time</h3>
+                <h3 className="text-lg font-semibold text-[#002353] mb-2">
+                  Select Time
+                </h3>
 
                 {selectedDate ? (
                   <>
                     <p className="text-sm text-[#5C7188] mb-4">
-                      Available times for <span className="font-medium text-[#002353]">{formatDate(selectedDate)}</span>
+                      Available times for{' '}
+                      <span className="font-medium text-[#002353]">
+                        {formatDate(selectedDate)}
+                      </span>
                     </p>
 
                     {availableTimes.length > 0 ? (
@@ -324,7 +389,7 @@ const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
                                 'px-3 py-2 rounded-lg text-sm font-medium border transition',
                                 active
                                   ? 'border-[#3871C1] bg-[#EAF2FF] text-[#3871C1]'
-                                  : 'border-gray-200 hover:border-[#C9DBEE] text-[#002353]'
+                                  : 'border-gray-200 hover:border-[#C9DBEE] text-[#002353]',
                               ].join(' ')}
                             >
                               {time}
@@ -334,17 +399,32 @@ const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
                       </div>
                     ) : (
                       <div className="text-center py-8">
-                        <svg className="w-10 h-10 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        <svg
+                          className="w-10 h-10 text-gray-300 mx-auto mb-3"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
                         </svg>
-                        <p className="text-sm text-[#5C7188]">No remaining times today. Please choose another date.</p>
+                        <p className="text-sm text-[#5C7188]">
+                          No remaining times today. Please choose another date.
+                        </p>
                       </div>
                     )}
 
                     <div className="flex items-center justify-between mt-4">
                       <button
                         type="button"
-                        onClick={() => { setSelectedTime(''); setSelectedDate(null); }}
+                        onClick={() => {
+                          setSelectedTime('');
+                          setSelectedDate(null);
+                        }}
                         className="text-xs text-[#5C7188] hover:text-[#002353] underline"
                       >
                         Clear selection
@@ -361,10 +441,22 @@ const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
                   </>
                 ) : (
                   <div className="text-center py-10">
-                    <svg className="w-12 h-12 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    <svg
+                      className="w-12 h-12 text-gray-300 mx-auto mb-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
                     </svg>
-                    <p className="text-[#5C7188]">Please select a date to see available times.</p>
+                    <p className="text-[#5C7188]">
+                      Please select a date to see available times.
+                    </p>
                   </div>
                 )}
               </div>
@@ -387,7 +479,7 @@ const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
                   'px-5 py-2.5 rounded-lg font-semibold transition-colors',
                   selectedDate && selectedTime
                     ? 'bg-[#3871C1] text-white hover:bg-[#2f5ea6]'
-                    : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                    : 'bg-gray-200 text-gray-500 cursor-not-allowed',
                 ].join(' ')}
               >
                 Schedule Visit
@@ -400,10 +492,23 @@ const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
       {/* Success Modal */}
       {successOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/30" onClick={() => setSuccessOpen(false)} />
+          <div
+            className="absolute inset-0 bg-black/30"
+            onClick={() => setSuccessOpen(false)}
+          />
           <div className="relative bg-white rounded-2xl p-8 max-w-md w-full text-center shadow-xl">
-            <svg className="w-16 h-16 text-green-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            <svg
+              className="w-16 h-16 text-green-500 mx-auto mb-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M5 13l4 4L19 7"
+              />
             </svg>
             <h2 className="text-xl font-bold mb-2">Visit Scheduled!</h2>
             <p className="text-gray-600 mb-6">
