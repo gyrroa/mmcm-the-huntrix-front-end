@@ -1,6 +1,8 @@
 {
   "rent": [
     {
+      "id": "rent_san-isidro",
+      "user_id": "user_001",
       "slug": "san-isidro",
       "name": "San Isidro",
       "price": "25,000",
@@ -23,6 +25,8 @@
       ]
     },
     {
+      "id": "rent_palmera-heights",
+      "user_id": "user_001",
       "slug": "palmera-heights",
       "name": "Palmera Heights",
       "price": "18,500",
@@ -45,6 +49,8 @@
       ]
     },
     {
+      "id": "rent_villa-encarnacion",
+      "user_id": "user_001",
       "slug": "villa-encarnacion",
       "name": "Villa Encarnacion",
       "price": "12,000",
@@ -67,6 +73,8 @@
       ]
     },
     {
+      "id": "rent_barangay-maligaya",
+      "user_id": "user_001",
       "slug": "barangay-maligaya",
       "name": "Barangay Maligaya",
       "price": "15,000",
@@ -87,6 +95,8 @@
       ]
     },
     {
+      "id": "rent_sitio-baybayin",
+      "user_id": "user_001",
       "slug": "sitio-baybayin",
       "name": "Sitio Baybayin",
       "price": "9,500",
@@ -107,6 +117,8 @@
       ]
     },
     {
+      "id": "rent_bayanihan-hills",
+      "user_id": "user_001",
       "slug": "bayanihan-hills",
       "name": "Bayanihan Hills",
       "price": "13,800",
@@ -131,6 +143,8 @@
   ],
   "buy": [
     {
+      "id": "buy_laguna-vista",
+      "user_id": "user_002",
       "slug": "laguna-vista",
       "name": "Laguna Vista",
       "price": "2,750,000 – 3,200,000",
@@ -157,6 +171,8 @@
       ]
     },
     {
+      "id": "buy_greenfield-estates",
+      "user_id": "user_001",
       "slug": "greenfield-estates",
       "name": "Greenfield Estates",
       "price": "2,750,000",
@@ -182,6 +198,8 @@
       ]
     },
     {
+      "id": "buy_maple-residences",
+      "user_id": "user_001",
       "slug": "maple-residences",
       "name": "Maple Residences",
       "price": "3,750,000 - 4,100,000",
@@ -204,6 +222,96 @@
       ],
       "images": [
         "/PropertySection/buy/MapleResidences.svg"
+      ]
+    }
+  ],
+  "sell": [
+    {
+      "id": "sell_ridgeview-homes",
+      "user_id": "user_001",
+      "slug": "ridgeview-homes",
+      "name": "Ridgeview Homes",
+      "price": "4,500,000 – 5,200,000",
+      "address": "Brgy. San Roque, Antipolo City, Rizal",
+      "images": [
+        "/PropertySection/sell/RidgeviewHomes_1.svg",
+        "/PropertySection/sell/RidgeviewHomes_2.svg",
+        "/PropertySection/sell/RidgeviewHomes_3.svg"
+      ],
+      "documents": [
+        "Title Deed",
+        "Tax Declaration",
+        "Deed of Absolute Sale"
+      ]
+    },
+    {
+      "id": "sell_blue-horizon",
+      "user_id": "user_001",
+      "slug": "blue-horizon",
+      "name": "Blue Horizon",
+      "price": "6,800,000",
+      "address": "North Reclamation Area, Mandaue City, Cebu",
+      "images": [
+        "/PropertySection/sell/BlueHorizon_1.svg",
+        "/PropertySection/sell/BlueHorizon_2.svg"
+      ],
+      "documents": [
+        "Title Deed",
+        "Tax Declaration",
+        "Deed of Absolute Sale"
+      ]
+    },
+    {
+      "id": "sell_molave-park",
+      "user_id": "user_002",
+      "slug": "molave-park",
+      "name": "Molave Park",
+      "price": "3,950,000 – 4,300,000",
+      "address": "Molave St., Talomo, Davao City, Davao del Sur",
+      "images": [
+        "/PropertySection/sell/MolavePark_1.svg",
+        "/PropertySection/sell/MolavePark_2.svg",
+        "/PropertySection/sell/MolavePark_3.svg"
+      ],
+      "documents": [
+        "Title Deed",
+        "Tax Declaration",
+        "Deed of Absolute Sale"
+      ]
+    },
+    {
+      "id": "sell_eastwood-heights",
+      "user_id": "user_001",
+      "slug": "eastwood-heights",
+      "name": "Eastwood Heights",
+      "price": "7,250,000",
+      "address": "Eastwood Ave., Libis, Quezon City, NCR",
+      "images": [
+        "/PropertySection/sell/EastwoodHeights_1.svg",
+        "/PropertySection/sell/EastwoodHeights_2.svg"
+      ],
+      "documents": [
+        "Title Deed",
+        "Tax Declaration",
+        "Deed of Absolute Sale"
+      ]
+    },
+    {
+      "id": "sell_ocean-breeze",
+      "user_id": "user_001",
+      "slug": "ocean-breeze",
+      "name": "Ocean Breeze",
+      "price": "5,400,000 – 5,900,000",
+      "address": "Barangay Matabungkay, Lian, Batangas",
+      "images": [
+        "/PropertySection/sell/OceanBreeze_1.svg",
+        "/PropertySection/sell/OceanBreeze_2.svg",
+        "/PropertySection/sell/OceanBreeze_3.svg"
+      ],
+      "documents": [
+        "Title Deed",
+        "Tax Declaration",
+        "Deed of Absolute Sale"
       ]
     }
   ]

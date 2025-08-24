@@ -22,6 +22,16 @@ body {
   color: var(--foreground);
   font-family: 'Plus Jakarta Sans', Arial, Helvetica, sans-serif;
 }
+
 html {
-  scroll-padding-top: 40px; 
+  scroll-padding-top: 40px;
+}
+
+/* Remove mouse-focus outline, keep keyboard focus rings */
+.recharts-no-focus:focus:not(:focus-visible),
+.recharts-no-focus *:focus:not(:focus-visible),
+.recharts-wrapper:focus:not(:focus-visible),
+.recharts-surface:focus:not(:focus-visible),
+.recharts-default-tooltip:focus:not(:focus-visible) {
+  outline: none !important;
 }

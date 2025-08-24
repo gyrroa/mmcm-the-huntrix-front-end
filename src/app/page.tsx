@@ -1,8 +1,8 @@
-import BenefitSection from "@/components/section/benefitSection";
-import ContactSection from "@/components/section/contactSection";
-import HeroSection from "@/components/section/heroSection";
-import PropertySection from "@/components/section/propertySection";
-import ServiceSection from "@/components/section/serviceSection";
+import BenefitSection from "@/components/homeSection/benefitSection";
+import ContactSection from "@/components/homeSection/testimonialsSection";
+import HeroSection from "@/components/homeSection/heroSection";
+import PropertySection from "@/components/homeSection/propertySection";
+import ServiceSection from "@/components/homeSection/serviceSection";
 
 export default function Home() {
   return (
@@ -15,3 +15,4 @@ export default function Home() {
     </div>
   );
 }
+

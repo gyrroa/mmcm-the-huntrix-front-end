@@ -10,7 +10,7 @@ const variantClasses = {
     secondary: "text-[#002353] border-2 border-[#B8D6FF] hover:brightness-90 bg-[#FFFFFF]/80 px-6 py-3 ",
     tertiary: "text-white border-2 border-[#002353] bg-[#002353] hover:brightness-90 px-2.5 py-2.5 w-fit",
     quaternary: "text-[#3871C1] border-2 border-[#D2E4FF] hover:brightness-90 bg-[#ECF4FF] px-6 py-3",
-    property: "text-white border-2 border-[#002353] bg-[#002353] hover:brightness-90 px-8 py-4 w-fit",
+    property: "text-white border-2 border-[#002353] bg-[#002353] hover:brightness-90 px-8 py-4 w-fit rounded-[30px]",
 };
 
 const Button: React.FC<ButtonProps> = ({

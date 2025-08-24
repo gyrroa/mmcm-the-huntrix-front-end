@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import propertyData from '@/data/properties.json';
-import PropertyCard from '@/components/PropertyCard';
+import PropertyCard from '@/components/ui/home/PropertyCard';
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 

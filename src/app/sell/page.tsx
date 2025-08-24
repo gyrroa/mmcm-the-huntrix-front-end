@@ -1,20 +1,77 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Button from '@/components/button';
 import {
     FaBed,
     FaBath,
     FaRulerCombined,
-    FaMoneyBillWave,
     FaHome,
     FaMapMarkerAlt,
     FaImages,
+    FaCheckCircle,
+    FaTimesCircle,
+    FaMoneyBillWave,
+    FaClipboardCheck,
 } from 'react-icons/fa';
+import Image from 'next/image';
 
+// ---------- Types ----------
+type ChecklistKeys =
+    | 'titleDeed'
+    | 'deedOfSale'
+    | 'taxDec'
+    | 'taxReceipts'
+    | 'encumbranceCert'
+    | 'birCar'
+    | 'transferTaxClearance';
+
+// Hoisted so it's stable and not part of Hook deps
+const checklistMeta: {
+    id: ChecklistKeys;
+    label: string;
+    description: string;
+}[] = [
+        {
+            id: 'titleDeed',
+            label: 'Title Deed / Certificate of Title (TCT or CCT)',
+            description: 'Proves legal ownership of the property.',
+        },
+        {
+            id: 'deedOfSale',
+            label: 'Deed of Absolute Sale (DOAS)',
+            description: 'Indicates the transfer agreement between seller and buyer.',
+        },
+        {
+            id: 'taxDec',
+            label: 'Tax Declaration',
+            description: 'Shows the assessed property value for tax purposes.',
+        },
+        {
+            id: 'taxReceipts',
+            label: 'Latest Property Tax Receipts',
+            description: 'Verifies payment of real property taxes.',
+        },
+        {
+            id: 'encumbranceCert',
+            label: 'Encumbrance Certificate',
+            description: 'Confirms the property has no existing liens or mortgages.',
+        },
+        {
+            id: 'birCar',
+            label: 'BIR Certificate Authorizing Registration (CAR)',
+            description: 'Issued by BIR to allow transfer of property title.',
+        },
+        {
+            id: 'transferTaxClearance',
+            label: 'Transfer Tax Clearance from LGU',
+            description: 'Certifies payment of transfer tax to the local government.',
+        },
+    ];
+
+// ---------- Component ----------
 const SellPage: React.FC = () => {
-
-    const [checklist, setChecklist] = useState({
+    const [checklist, setChecklist] = useState<Record<ChecklistKeys, boolean>>({
         titleDeed: false,
         deedOfSale: false,
         taxDec: false,
@@ -24,9 +81,12 @@ const SellPage: React.FC = () => {
         transferTaxClearance: false,
     });
 
+    const [isDragging, setIsDragging] = useState(false);
+    const [descCount, setDescCount] = useState(0);
+    const DESC_LIMIT = 800;
 
     const [formData, setFormData] = useState({
-        type: 'rent',
+        type: 'rent' as 'rent' | 'buy',
         title: '',
         address: '',
         price: '',
@@ -37,277 +97,609 @@ const SellPage: React.FC = () => {
         description: '',
         amenities: '',
         images: [] as File[],
+        lat: null as number | null,
+        lng: null as number | null,
     });
+
+    const [isMapOpen, setIsMapOpen] = useState(false);
+
+    // Safe local previews (avoid memory leaks)
+    const [previews, setPreviews] = useState<string[]>([]);
+    useEffect(() => {
+        const urls = formData.images.map((f) => URL.createObjectURL(f));
+        setPreviews(urls);
+        return () => urls.forEach((u) => URL.revokeObjectURL(u));
+    }, [formData.images]);
 
     const handleInputChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
     ) => {
         const { name, value } = e.target;
         setFormData((prev) => ({ ...prev, [name]: value }));
+        if (name === 'description') setDescCount(value.length);
     };
 
-    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = Array.from(e.target.files || []);
-        setFormData((prev) => ({ ...prev, images: files }));
+    const formatPeso = (raw: string) => {
+        const digits = raw.replace(/[^\d]/g, '');
+        if (!digits) return '';
+        return new Intl.NumberFormat('en-PH').format(Number(digits));
     };
+
+    const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const formatted = formatPeso(e.target.value);
+        setFormData((prev) => ({ ...prev, price: formatted }));
+    };
+
+    const acceptImage = (f: File) =>
+        ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'].includes(f.type) &&
+        f.size <= 10 * 1024 * 1024;
+
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const picked = Array.from(e.target.files || []).filter(acceptImage);
+        const next = [...formData.images, ...picked].slice(0, 25);
+        setFormData((prev) => ({ ...prev, images: next }));
+    };
+    const SectionTitle: React.FC<{ icon?: React.ReactNode; title: string }> = ({ icon, title }) => (
+        <div className="flex items-center gap-2 text-lg font-semibold text-[#002353]">
+            {icon && <span className="text-[#8091A8] text-[18px]">{icon}</span>}
+            <span>{title}</span>
+        </div>
+    );
+    const Card: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+        <div className="bg-white/90 backdrop-blur border border-[#E3ECF9] rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
+            {children}
+        </div>
+    );
+    const onDropFiles = useCallback(
+        (files: FileList | null) => {
+            if (!files) return;
+            const picked = Array.from(files).filter(acceptImage);
+            const next = [...formData.images, ...picked].slice(0, 25);
+            setFormData((prev) => ({ ...prev, images: next }));
+        },
+        [formData.images]
+    );
+
+    const checklistProgress = useMemo(() => {
+        const total = checklistMeta.length;
+        const done = checklistMeta.filter((c) => checklist[c.id]).length;
+        return { done, total, pct: Math.round((done / total) * 100) || 0 };
+    }, [checklist]);
+
+    const isValid = useMemo(() => {
+        const must = ['title', 'address', 'price', 'size'] as const;
+        return must.every((k) => String(formData[k]).trim().length > 0);
+    }, [formData]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        console.log('Submitted:', formData);
+        console.log('Submitted:', {
+            ...formData,
+            priceNumeric: Number(formData.price.replace(/[^\d]/g, '')) || 0,
+        });
+    };
+
+    const toggleAllChecklist = (checked: boolean) => {
+        const next: Record<ChecklistKeys, boolean> = { ...checklist };
+        (Object.keys(next) as ChecklistKeys[]).forEach((k) => {
+            next[k] = checked;
+        });
+        setChecklist(next);
     };
 
     return (
-        <section className="bg-gradient-to-b from-white to-[#D2E4FF] text-[#002353] min-h-screen py-[80px] px-6">
-            <div className="max-w-5xl mx-auto flex flex-col gap-[48px]">
+        <section
+            className="relative min-h-screen pt-[80px] pb-24 px-6 text-[#002353] bg-gradient-to-b from-white to-[#D2E4FF]"
+        >
+            {/* subtle backdrop pattern */}
+            <div className="pointer-events-none absolute inset-0 opacity-[0.08] [background:radial-gradient(circle_at_1px_1px,#0a3a821a_1px,transparent_0)] bg-[size:24px_24px]" />
+
+            <div className="relative max-w-6xl mx-auto flex flex-col gap-8">
                 {/* Header */}
                 <div className="text-center flex flex-col gap-2 animate-fadeIn">
-                    <h1 className="text-[40px] font-bold leading-[140%]">Sell Your Property</h1>
+                    <h1 className="text-[40px] font-bold leading-[1.2] tracking-tight">
+                        Sell Your Property
+                    </h1>
                     <p className="text-[#5C7188] text-[16px] max-w-md mx-auto">
                         Create a stunning listing and get noticed by serious buyers.
                     </p>
                 </div>
 
-                <form
-                    onSubmit={handleSubmit}
-                    className="flex flex-col gap-10 animate-fadeIn"
-                >
-                    {/* Listing Type */}
-                    <div className='items-center flex flex-col w-full'>
-                        <div className='bg-white border border-[#E3ECF9] rounded-2xl px-6 py-4 shadow-sm hover:shadow-md transition-shadow duration-200'>
-                            <div className="relative flex gap-[10px] w-fit">
-                                {['rent', 'buy'].map((option) => (
-                                    <Button
-                                        key={option}
+                <form onSubmit={handleSubmit} className="flex flex-col xl:flex-row gap-6 animate-fadeIn">
+                    {/* Left column */}
+                    <div className="flex-1 flex flex-col gap-6">
+                        {/* Listing Type (SEGMENTED) */}
+                        <div className="w-full">
+                            <div className="bg-white border border-[#E3ECF9] rounded-2xl px-3 py-2 shadow-sm hover:shadow-md transition-shadow duration-200 w-fit mx-auto">
+                                <div className="inline-flex items-center gap-1 rounded-[14px]">
+                                    {/* For Rent */}
+                                    <button
                                         type="button"
-                                        variant={formData.type === option ? 'primary' : 'secondary'}
-                                        onClick={() =>
-                                            setFormData((prev) => ({ ...prev, type: option }))
+                                        aria-pressed={formData.type === 'rent'}
+                                        onClick={() => setFormData((prev) => ({ ...prev, type: 'rent' }))}
+                                        className={
+                                            (formData.type === 'rent'
+                                                ? 'bg-[#3871C1] text-white shadow '
+                                                : 'bg-white text-[#0B2B57] border border-[#BFD3FF] hover:bg-[#F5FAFF] ') +
+                                            'px-4 py-2 rounded-[10px] text-sm font-semibold transition-all outline-none focus-visible:ring-2 focus-visible:ring-[#3871C1] focus-visible:ring-offset-2'
                                         }
                                     >
-                                        {option === 'rent' ? 'For Rent' : 'For Sale'}
-                                    </Button>
-                                ))}
+                                        For Rent
+                                    </button>
+
+                                    {/* For Sale */}
+                                    <button
+                                        type="button"
+                                        aria-pressed={formData.type === 'buy'}
+                                        onClick={() => setFormData((prev) => ({ ...prev, type: 'buy' }))}
+                                        className={
+                                            (formData.type === 'buy'
+                                                ? 'bg-[#3871C1] text-white shadow '
+                                                : 'bg-white text-[#0B2B57] border border-[#BFD3FF] hover:bg-[#F5FAFF] ') +
+                                            'px-4 py-2 rounded-[10px] text-sm font-semibold transition-all outline-none focus-visible:ring-2 focus-visible:ring-[#3871C1] focus-visible:ring-offset-2'
+                                        }
+                                    >
+                                        For Sale
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    {/* Property Info */}
-                    <Card>
-                        <SectionTitle icon={<FaMapMarkerAlt />} title="Property Information" />
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <Field label="Title" name="title" icon={<FaHome />} placeholder="e.g. San Isidro Family Home" value={formData.title} onChange={handleInputChange} />
-                            <Field label="Address" name="address" icon={<FaMapMarkerAlt />} placeholder="Full property address" value={formData.address} onChange={handleInputChange} />
-                            <div className="flex flex-col gap-1">
-                                <label className="text-sm font-medium text-[#001619B2]">Price</label>
-                                <div className="flex gap-2">
-                                    {/* Price input */}
-                                    <div className="relative w-full">
+                        {/* Property Info */}
+                        <Card>
+                            <SectionTitle icon={<FaMapMarkerAlt />} title="Property Information" />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                                <Field
+                                    label="Title"
+                                    name="title"
+                                    icon={<FaHome />}
+                                    placeholder="e.g. San Isidro Family Home"
+                                    value={formData.title}
+                                    onChange={handleInputChange}
+                                />
+
+                                {/* Address + Pick on Map */}
+                                <div className="flex flex-col gap-1 group">
+                                    <label htmlFor="address" className="text-sm font-medium text-[#001619B2]">
+                                        Address
+                                    </label>
+                                    <div className="relative">
                                         <input
-                                            type="number"
-                                            name="price"
-                                            value={formData.price}
+                                            id="address"
+                                            type="text"
+                                            name="address"
+                                            value={formData.address}
                                             onChange={handleInputChange}
-                                            placeholder={formData.type === 'rent' ? 'e.g. 15000' : 'e.g. 3,500,000'}
-                                            className="w-full border border-[#D2E4FF] px-10 py-3 rounded-xl text-sm placeholder-[#9AA6B2] focus:outline-none focus:ring-2 focus:ring-[#3871C1] transition"
+                                            placeholder="Full property address"
+                                            className="w-full border border-[#D2E4FF] pl-10 pr-28 py-3 rounded-xl text-sm placeholder-[#9AA6B2] focus:outline-none focus:ring-2 focus:ring-[#3871C1] transition"
                                         />
                                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8091A8] text-[16px]">
-                                            ₱
+                                            <FaMapMarkerAlt />
                                         </span>
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsMapOpen(true)}
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-lg border border-[#BFD3FF] bg-white text-[#0B2B57] text-xs font-semibold hover:bg-[#F5FAFF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3871C1]"
+                                            aria-label="Pick address on map"
+                                        >
+                                            Pick on map
+                                        </button>
                                     </div>
-                                    {/* Frequency dropdown (only if rent) */}
-                                    {formData.type === 'rent' && (
-                                        <>
-                                            <div className='items-center flex text-[#9AA6B2]'>{"/"}</div>
-                                            <select
-                                                name="frequency"
-                                                value={formData.frequency}
-                                                onChange={(e) =>
-                                                    setFormData((prev) => ({ ...prev, frequency: e.target.value }))
-                                                }
-                                                className="font-medium min-w-[120px] border border-[#D2E4FF] rounded-xl text-sm px-2 py-3 text-[#002353] focus:ring-2 focus:ring-[#3871C1] focus:outline-none transition"
-                                            >
-                                                <option value="monthly">month</option>
-                                                <option value="biweekly">bi-weekly</option>
-                                                <option value="weekly">week</option>
-                                                <option value="daily">day</option>
-                                            </select>
-                                        </>
-
+                                    <p className="text-xs text-[#8091A8]">
+                                        Type an address or pick a location to auto-fill it.
+                                    </p>
+                                    {formData.lat && formData.lng && (
+                                        <p className="text-xs text-[#5C7188]">
+                                            Selected:&nbsp;
+                                            <span className="font-medium">
+                                                {formData.lat.toFixed(5)}, {formData.lng.toFixed(5)}
+                                            </span>
+                                        </p>
                                     )}
                                 </div>
-                            </div>
-                            <Field label="Size" name="size" icon={<FaRulerCombined />} placeholder="e.g. 5x7 m²" value={formData.size} onChange={handleInputChange} />
-                            <Field label="Bedrooms" name="bed" type="number" icon={<FaBed />} placeholder="e.g. 3" value={formData.bed} onChange={handleInputChange} />
-                            <Field label="Bathrooms" name="bath" type="number" icon={<FaBath />} placeholder="e.g. 2" value={formData.bath} onChange={handleInputChange} />
-                        </div>
-                    </Card>
 
-                    {/* Description */}
-                    <Card>
-                        <SectionTitle icon={<FaHome />} title="Description & Amenities" />
-                        <div className="flex flex-col gap-4">
-                            <textarea
-                                name="description"
-                                rows={5}
-                                value={formData.description}
-                                onChange={handleInputChange}
-                                placeholder="Describe your property..."
-                                className="w-full px-4 py-3 border border-[#D2E4FF] rounded-[12px] text-sm placeholder-[#9AA6B2] focus:ring-2 focus:ring-[#3871C1] focus:outline-none transition"
-                            />
-                            <input
-                                type="text"
-                                name="amenities"
-                                value={formData.amenities}
-                                onChange={handleInputChange}
-                                placeholder="e.g. Gated Community, Pet Friendly"
-                                className="w-full px-4 py-3 border border-[#D2E4FF] rounded-[12px] text-sm placeholder-[#9AA6B2] focus:ring-2 focus:ring-[#3871C1] focus:outline-none transition"
-                            />
-                        </div>
-                    </Card>
-
-                    {/* Images */}
-                    <Card>
-                        <SectionTitle icon={<FaImages />} title="Photos" />
-                        <div className="flex flex-col gap-4">
-                            <label
-                                htmlFor="image-upload"
-                                className="border-2 border-dashed border-[#D2E4FF] bg-[#F9FAFF] rounded-xl py-10 px-6 flex flex-col items-center justify-center text-center text-sm text-[#5C7188] cursor-pointer hover:bg-[#EDF3FF] transition-all duration-150 group"
-                            >
-                                <FaImages className="text-2xl mb-2 text-[#3871C1] group-hover:scale-110 transition" />
-                                <span className="font-medium mb-1">Drag & Drop or Click to Upload</span>
-                                <span className="text-xs text-[#8CA1C6]">Max 10MB • JPG/PNG</span>
-                                <input
-                                    id="image-upload"
-                                    type="file"
-                                    accept="image/*"
-                                    multiple
-                                    onChange={handleImageChange}
-                                    className="hidden"
-                                />
-                            </label>
-
-                            {formData.images.length > 0 && (
-                                <div className="mt-4 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-                                    {formData.images.map((file, index) => (
-                                        <div
-                                            key={index}
-                                            className="relative w-full aspect-square bg-gray-100 rounded-lg overflow-hidden border border-[#D2E4FF] group"
-                                        >
-                                            <img
-                                                src={URL.createObjectURL(file)}
-                                                alt={`preview-${index}`}
-                                                className="object-cover w-full h-full group-hover:scale-105 transition-transform"
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    setFormData((prev) => ({
-                                                        ...prev,
-                                                        images: prev.images.filter((_, i) => i !== index),
-                                                    }))
-                                                }
-                                                className="absolute top-1 right-1 w-6 h-6 rounded-full bg-white text-[#002353] text-xs font-bold shadow-sm flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition"
-                                                title="Remove"
-                                            >
-                                                ×
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    </Card>
-
-                    <Card>
-                        <SectionTitle icon={<FaImages />} title="Essential Property Documents Checklist" />
-                        <ul className="flex flex-col gap-3 mt-4">
-                            {[
-                                {
-                                    id: 'titleDeed',
-                                    label: 'Title Deed / Certificate of Title (TCT or CCT)',
-                                    required: false,
-                                    description: 'Proves legal ownership of the property.',
-                                },
-                                {
-                                    id: 'deedOfSale',
-                                    label: 'Deed of Absolute Sale (DOAS)',
-                                    required: false,
-                                    description: 'Indicates the transfer agreement between seller and buyer.',
-                                },
-                                {
-                                    id: 'taxDec',
-                                    label: 'Tax Declaration',
-                                    required: false,
-                                    description: 'Shows the assessed property value for tax purposes.',
-                                },
-                                {
-                                    id: 'taxReceipts',
-                                    label: 'Latest Property Tax Receipts',
-                                    required: false,
-                                    description: 'Verifies payment of real property taxes.',
-                                },
-                                {
-                                    id: 'encumbranceCert',
-                                    label: 'Encumbrance Certificate',
-                                    required: false,
-                                    description: 'Confirms the property has no existing liens or mortgages.',
-                                },
-                                {
-                                    id: 'birCar',
-                                    label: 'BIR Certificate Authorizing Registration (CAR)',
-                                    required: false,
-                                    description: 'Issued by BIR to allow transfer of property title.',
-                                },
-                                {
-                                    id: 'transferTaxClearance',
-                                    label: 'Transfer Tax Clearance from LGU',
-                                    required: false,
-                                    description: 'Certifies payment of transfer tax to the local government.',
-                                },
-                            ].map((item) => (
-                                <li
-                                    key={item.id}
-                                    onClick={() =>
-                                        setChecklist((prev) => ({
-                                            ...prev,
-                                            [item.id]: !prev[item.id as keyof typeof checklist],
-                                        }))
-                                    }
-                                    className="flex flex-col gap-1 border border-[#D2E4FF] rounded-xl px-4 py-3 bg-[#F9FAFF] hover:bg-[#EDF3FF] transition cursor-pointer"
-                                >
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-3 text-sm">
+                                {/* Price + Frequency */}
+                                <div className="flex flex-col gap-1">
+                                    <label className="text-sm font-medium text-[#001619B2]">Price</label>
+                                    <div className="flex gap-2 items-center">
+                                        <div className="relative w-full">
                                             <input
-                                                type="checkbox"
-                                                checked={checklist[item.id as keyof typeof checklist]}
-                                                onChange={() => { }}
-                                                className="w-4 h-4 text-[#3871C1] accent-[#3871C1] cursor-pointer"
+                                                type="text"
+                                                inputMode="numeric"
+                                                name="price"
+                                                value={formData.price}
+                                                onChange={handlePriceChange}
+                                                placeholder={formData.type === 'rent' ? '15,000' : '3,500,000'}
+                                                className="w-full border border-[#D2E4FF] pl-9 pr-3 py-3 rounded-xl text-sm placeholder-[#9AA6B2] focus:outline-none focus:ring-2 focus:ring-[#3871C1] transition"
+                                                aria-label="Price in Philippine pesos"
                                             />
-                                            <span className="font-medium text-[#002353]">{item.label}</span>
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8091A8] text-[15px] select-none">
+                                                ₱
+                                            </span>
                                         </div>
-                                        {item.required && (
-                                            <span className="text-xs text-[#8091A8] whitespace-nowrap">(Required)</span>
+                                        {formData.type === 'rent' && (
+                                            <>
+                                                <div className="relative min-w-[140px]">
+                                                    <select
+                                                        name="frequency"
+                                                        value={formData.frequency}
+                                                        onChange={(e) =>
+                                                            setFormData((prev) => ({ ...prev, frequency: e.target.value }))
+                                                        }
+                                                        className="font-medium w-full border border-[#D2E4FF] rounded-xl text-sm px-3 pr-10 py-3 text-[#002353]
+               focus:ring-2 focus:ring-[#3871C1] focus:outline-none transition
+               appearance-none bg-white"
+                                                    >
+                                                        <option value="monthly">month</option>
+                                                        <option value="biweekly">bi-week</option>
+                                                        <option value="weekly">week</option>
+                                                        <option value="daily">day</option>
+                                                    </select>
+
+                                                    {/* custom arrow */}
+                                                    <svg
+                                                        aria-hidden="true"
+                                                        className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 opacity-70"
+                                                        viewBox="0 0 20 20"
+                                                        fill="none"
+                                                    >
+                                                        <path d="M5.5 7.5l4.5 4.5 4.5-4.5" stroke="#002353" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                    </svg>
+                                                </div>
+                                            </>
                                         )}
                                     </div>
-                                    <p className="text-xs text-[#8091A8] pl-7">{item.description}</p>
-                                </li>
-                            ))}
-                        </ul>
-                    </Card>
+                                    <div className="text-xs text-[#8091A8] mt-1 flex items-center gap-1">
+                                        <FaMoneyBillWave className="opacity-70" /> Numbers only; commas added automatically.
+                                    </div>
+                                </div>
 
-                    {/* Sticky Submit CTA */}
-                    <div className="sticky bottom-0 left-0 w-full py-6 z-10 flex justify-center">
-                        <Button type="submit" variant="property">
-                            Submit Property Listing
-                        </Button>
+                                <Field
+                                    label="Size"
+                                    name="size"
+                                    icon={<FaRulerCombined />}
+                                    placeholder="e.g. 120 m²"
+                                    value={formData.size}
+                                    onChange={handleInputChange}
+                                />
+                                <Field
+                                    label="Bedrooms"
+                                    name="bed"
+                                    type="number"
+                                    icon={<FaBed />}
+                                    placeholder="e.g. 3"
+                                    value={formData.bed}
+                                    onChange={handleInputChange}
+                                />
+                                <Field
+                                    label="Bathrooms"
+                                    name="bath"
+                                    type="number"
+                                    icon={<FaBath />}
+                                    placeholder="e.g. 2"
+                                    value={formData.bath}
+                                    onChange={handleInputChange}
+                                />
+                            </div>
+                        </Card>
+
+                        {/* Description */}
+                        <Card>
+                            <SectionTitle icon={<FaHome />} title="Description & Amenities" />
+                            <div className="flex flex-col gap-4 mt-4">
+                                <div className="relative">
+                                    <textarea
+                                        name="description"
+                                        rows={6}
+                                        maxLength={DESC_LIMIT}
+                                        value={formData.description}
+                                        onChange={handleInputChange}
+                                        placeholder="Highlight the best features, nearby landmarks, and what makes this property unique..."
+                                        className="w-full px-4 py-3 border border-[#D2E4FF] rounded-[12px] text-sm placeholder-[#9AA6B2] focus:ring-2 focus:ring-[#3871C1] focus:outline-none transition"
+                                        aria-describedby="desc-help"
+                                    />
+                                    <div
+                                        id="desc-help"
+                                        className="absolute right-3 bottom-2 text-xs text-[#8b98ab]"
+                                        aria-live="polite"
+                                    >
+                                        {descCount}/{DESC_LIMIT}
+                                    </div>
+                                </div>
+                                <input
+                                    type="text"
+                                    name="amenities"
+                                    value={formData.amenities}
+                                    onChange={handleInputChange}
+                                    placeholder="e.g. Gated Community, Pet Friendly, Balcony, 2-Car Garage"
+                                    className="w-full px-4 py-3 border border-[#D2E4FF] rounded-[12px] text-sm placeholder-[#9AA6B2] focus:ring-2 focus:ring-[#3871C1] focus:outline-none transition"
+                                />
+                            </div>
+                        </Card>
+
+                        {/* Images */}
+                        <Card>
+                            <SectionTitle icon={<FaImages />} title="Photos" />
+                            <div className="flex flex-col gap-4 mt-4">
+                                <label
+                                    htmlFor="image-upload"
+                                    onDragOver={(e) => {
+                                        e.preventDefault();
+                                        setIsDragging(true);
+                                    }}
+                                    onDragLeave={() => setIsDragging(false)}
+                                    onDrop={(e) => {
+                                        e.preventDefault();
+                                        setIsDragging(false);
+                                        onDropFiles(e.dataTransfer.files);
+                                    }}
+                                    className={`border-2 border-dashed rounded-xl py-10 px-6 flex flex-col items-center justify-center text-center text-sm cursor-pointer transition-all duration-150 group ${isDragging
+                                        ? 'border-[#3871C1] bg-[#EDF3FF]'
+                                        : 'border-[#D2E4FF] bg-[#F9FAFF] hover:bg-[#EDF3FF]'
+                                        }`}
+                                >
+                                    <FaImages className="text-2xl mb-2 text-[#3871C1] group-hover:scale-110 transition" />
+                                    <span className="font-medium mb-1">Drag & drop or click to upload</span>
+                                    <span className="text-xs text-[#8CA1C6]">
+                                        Up to 10MB each • JPG/PNG/WebP • Max 25 photos
+                                    </span>
+                                    <input
+                                        id="image-upload"
+                                        type="file"
+                                        accept="image/*"
+                                        multiple
+                                        onChange={handleImageChange}
+                                        className="hidden"
+                                    />
+                                </label>
+
+                                {formData.images.length > 0 && (
+                                    <>
+                                        <div className="flex items-center justify-between text-xs text-[#5C7188]">
+                                            <span>
+                                                {formData.images.length} photo{formData.images.length > 1 ? 's' : ''} added
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => setFormData((p) => ({ ...p, images: [] }))}
+                                                className="underline underline-offset-2 hover:text-[#3871C1]"
+                                                aria-label="Remove all photos"
+                                            >
+                                                Clear all
+                                            </button>
+                                        </div>
+
+                                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                                            {previews.map((src, index) => (
+                                                <div
+                                                    key={`${src}-${index}`}
+                                                    className="relative w-full aspect-square bg-white rounded-lg overflow-hidden border border-[#E3ECF9] group"
+                                                >
+                                                    <Image
+                                                        src={src}
+                                                        alt={`preview-${index}`}
+                                                        unoptimized
+                                                        width={800}
+                                                        height={800}
+                                                        className="object-cover w-full h-full group-hover:scale-105 transition-transform"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            setFormData((prev) => ({
+                                                                ...prev,
+                                                                images: prev.images.filter((_, i) => i !== index),
+                                                            }))
+                                                        }
+                                                        className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-white/90 text-[#002353] text-base font-bold shadow-sm flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition"
+                                                        title="Remove"
+                                                        aria-label={`Remove photo ${index + 1}`}
+                                                    >
+                                                        ×
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </Card>
+
+                        {/* Documents Checklist */}
+                        <Card>
+                            <div className="flex items-center justify-between gap-3">
+                                <SectionTitle icon={<FaClipboardCheck />} title="Essential Property Documents" />
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => toggleAllChecklist(true)}
+                                        className="px-4 py-2 rounded-xl border border-[#BFD3FF] bg-white text-[#0B2B57] font-semibold text-sm hover:bg-[#F5FAFF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3871C1] focus-visible:ring-offset-2"
+                                    >
+                                        Select all
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => toggleAllChecklist(false)}
+                                        className="px-4 py-2 rounded-xl border border-[#BFD3FF] bg-white text-[#0B2B57] font-semibold text-sm hover:bg-[#F5FAFF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3871C1] focus-visible:ring-offset-2"
+                                    >
+                                        Clear
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="mt-4">
+                                {/* progress */}
+                                <div className="mb-3">
+                                    <div className="flex items-center justify-between text-xs text-[#5C7188] mb-1">
+                                        <span>
+                                            {checklistProgress.done}/{checklistProgress.total} completed
+                                        </span>
+                                        <span>{checklistProgress.pct}%</span>
+                                    </div>
+                                    <div className="h-2 w-full rounded-full bg-[#E3ECF9] overflow-hidden">
+                                        <div
+                                            className="h-full bg-[#3871C1] transition-all"
+                                            style={{ width: `${checklistProgress.pct}%` }}
+                                        />
+                                    </div>
+                                </div>
+
+                                <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    {checklistMeta.map((item) => {
+                                        const checked = checklist[item.id];
+                                        return (
+                                            <li
+                                                key={item.id}
+                                                onClick={() =>
+                                                    setChecklist((prev) => ({ ...prev, [item.id]: !prev[item.id] }))
+                                                }
+                                                className={`flex flex-col gap-1 border rounded-xl px-4 py-3 bg-white transition cursor-pointer hover:shadow-sm ${checked ? 'border-[#9CC0FF] bg-[#F1F6FF]' : 'border-[#E3ECF9]'
+                                                    }`}
+                                                role="checkbox"
+                                                aria-checked={checked}
+                                                tabIndex={0}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter' || e.key === ' ') {
+                                                        e.preventDefault();
+                                                        setChecklist((prev) => ({ ...prev, [item.id]: !prev[item.id] }));
+                                                    }
+                                                }}
+                                            >
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-3 text-sm">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={checked}
+                                                            onChange={() => { }}
+                                                            className="w-4 h-4 text-[#3871C1] accent-[#3871C1] cursor-pointer"
+                                                            aria-label={item.label}
+                                                        />
+                                                        <span className="font-medium text-[#002353]">{item.label}</span>
+                                                    </div>
+                                                    {checked ? (
+                                                        <FaCheckCircle className="text-[#2f7d32]" />
+                                                    ) : (
+                                                        <FaTimesCircle className="text-[#A7B5C6]" />
+                                                    )}
+                                                </div>
+                                                <p className="text-xs text-[#60738a] pl-7">{item.description}</p>
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+                            </div>
+                        </Card>
                     </div>
+
+                    {/* Right column: Live summary + Submit */}
+                    <aside className="xl:w-[340px] xl:sticky xl:top-[118px] xl:self-start">
+                        <Card>
+                            <div className="flex items-center justify-between">
+                                <SectionTitle title="Listing Summary" />
+                                <span
+                                    className={`text-xs font-semibold px-2 py-1 rounded-full ${formData.type === 'rent'
+                                        ? 'bg-[#EAF2FF] text-[#1E4DB7]'
+                                        : 'bg-[#E9FFF3] text-[#0E7A47]'
+                                        }`}
+                                >
+                                    {formData.type === 'rent' ? 'For Rent' : 'For Sale'}
+                                </span>
+                            </div>
+
+                            <div className="mt-4 space-y-3 text-sm">
+                                <SummaryRow label="Title" value={formData.title || '—'} />
+                                <SummaryRow label="Address" value={formData.address || '—'} />
+                                <SummaryRow
+                                    label="Price"
+                                    value={
+                                        formData.price
+                                            ? `₱ ${formData.price}${formData.type === 'rent' ? ` / ${freqLabel(formData.frequency)}` : ''
+                                            }`
+                                            : '—'
+                                    }
+                                />
+                                <div className="grid grid-cols-3 gap-2">
+                                    <Chip icon={<FaRulerCombined />} value={formData.size || '—'} />
+                                    <Chip icon={<FaBed />} value={(formData.bed || '—') + ' BR'} />
+                                    <Chip icon={<FaBath />} value={(formData.bath || '—') + ' BA'} />
+                                </div>
+                                <div className="pt-2">
+                                    <div className="text-xs text-[#5C7188] mb-1">Checklist</div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="h-2 flex-1 rounded-full bg-[#E3ECF9] overflow-hidden">
+                                            <div
+                                                className="h-full bg-[#3871C1] transition-all"
+                                                style={{ width: `${checklistProgress.pct}%` }}
+                                            />
+                                        </div>
+                                        <span className="text-xs text-[#5C7188] w-10 text-right">
+                                            {checklistProgress.pct}%
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="pt-5 flex flex-col items-center">
+                                <Button type="submit" variant="property" disabled={!isValid}>
+                                    {isValid ? 'Submit Property Listing' : 'Complete required fields'}
+                                </Button>
+                                {!isValid && (
+                                    <p className="mt-2 text-xs text-[#8b98ab] text-center" aria-live="polite">
+                                        Add <span className="font-medium">Title</span>,{' '}
+                                        <span className="font-medium">Address</span>,{' '}
+                                        <span className="font-medium">Price</span>, and{' '}
+                                        <span className="font-medium">Size</span> to enable submission.
+                                    </p>
+                                )}
+                            </div>
+                        </Card>
+                    </aside>
                 </form>
             </div>
+
+            {/* Leaflet CSS (free maps) */}
+            <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+            {/* Map Picker Modal */}
+            {isMapOpen && (
+                <LeafletMapPickerModal
+                    open={isMapOpen}
+                    onClose={() => setIsMapOpen(false)}
+                    initialPosition={
+                        formData.lat && formData.lng ? { lat: formData.lat, lng: formData.lng } : undefined
+                    }
+                    onSelect={({ address, lat, lng }) => {
+                        setFormData((prev) => ({ ...prev, address, lat, lng }));
+                        setIsMapOpen(false);
+                    }}
+                />
+            )}
         </section>
     );
 };
 
 export default SellPage;
+
+/* ---------- Helpers ---------- */
+
+const freqLabel = (f: string) =>
+    f === 'monthly' ? 'month' : f === 'biweekly' ? 'bi-week' : f === 'weekly' ? 'week' : 'day';
+
+const SummaryRow: React.FC<{ label: string; value: string }> = ({ label, value }) => (
+    <div className="flex items-center justify-between">
+        <span className="text-[#5C7188]">{label}</span>
+        <span className="font-medium text-[#002353] max-w-[60%] text-right truncate">{value}</span>
+    </div>
+);
+
+const Chip: React.FC<{ icon?: React.ReactNode; value: string }> = ({ icon, value }) => (
+    <div className="flex items-center gap-2 px-2 py-1 rounded-lg border border-[#E3ECF9] text-[#002353]">
+        <span className="text-[#8091A8]">{icon}</span>
+        <span className="text-sm">{value}</span>
+    </div>
+);
+
+/* ---------- Reusable UI ---------- */
 
 interface FieldProps {
     label: string;
@@ -329,15 +721,18 @@ const Field: React.FC<FieldProps> = ({
     type = 'text',
 }) => (
     <div className="flex flex-col gap-1 group">
-        <label className="text-sm font-medium text-[#001619B2]">{label}</label>
+        <label htmlFor={name} className="text-sm font-medium text-[#001619B2]">
+            {label}
+        </label>
         <div className="relative">
             <input
+                id={name}
                 type={type}
                 name={name}
                 value={value}
                 onChange={onChange}
                 placeholder={placeholder}
-                className="w-full border border-[#D2E4FF] px-10 py-3 rounded-xl text-sm placeholder-[#9AA6B2] focus:outline-none focus:ring-2 focus:ring-[#3871C1] transition"
+                className="w-full border border-[#D2E4FF] pl-10 pr-3 py-3 rounded-xl text-sm placeholder-[#9AA6B2] focus:outline-none focus:ring-2 focus:ring-[#3871C1] transition"
             />
             {icon && (
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8091A8] text-[16px] group-focus-within:scale-110 transition-transform">
@@ -348,15 +743,140 @@ const Field: React.FC<FieldProps> = ({
     </div>
 );
 
-const SectionTitle: React.FC<{ icon?: React.ReactNode; title: string }> = ({ icon, title }) => (
-    <div className="flex items-center gap-2 text-lg font-semibold text-[#002353]">
-        {icon && <span className="text-[#8091A8] text-[18px]">{icon}</span>}
-        {title}
-    </div>
-);
+/* ---------- Map Picker Modal ---------- */
+type LatLng = { lat: number; lng: number };
+type LeafletNS = typeof import('leaflet');
 
-const Card: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-    <div className="bg-white border border-[#E3ECF9] rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
-        {children}
-    </div>
-);
+const LeafletMapPickerModal: React.FC<{
+    open: boolean;
+    onClose: () => void;
+    onSelect: (p: { address: string; lat: number; lng: number }) => void;
+    initialPosition?: LatLng;
+}> = ({ open, onClose, onSelect, initialPosition }) => {
+    const mapEl = React.useRef<HTMLDivElement | null>(null);
+    const mapRef = React.useRef<import('leaflet').Map | null>(null);
+    const markerRef = React.useRef<import('leaflet').Marker | null>(null);
+    const [Lmod, setLmod] = React.useState<LeafletNS | null>(null);
+    const [pos, setPos] = React.useState<LatLng>(
+        initialPosition || { lat: 14.5995, lng: 120.9842 } // Manila default
+    );
+    const [busy, setBusy] = React.useState(false);
+
+    // Load Leaflet only on client to avoid SSR issues
+    React.useEffect(() => {
+        let alive = true;
+        (async () => {
+            const L = await import('leaflet');
+            if (!alive) return;
+
+            // Fix default marker icons when bundling
+            // @ts-expect-error _getIconUrl is private in types; deleting to supply CDN icon URLs
+            delete L.Icon.Default.prototype._getIconUrl;
+            L.Icon.Default.mergeOptions({
+                iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+                iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+                shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+            });
+
+            setLmod(L);
+        })();
+        return () => {
+            alive = false;
+        };
+    }, []);
+
+    React.useEffect(() => {
+        if (!open || !mapEl.current || !Lmod) return;
+
+        const L = Lmod;
+        const map = L.map(mapEl.current, {
+            center: [pos.lat, pos.lng],
+            zoom: 15,
+            zoomControl: true,
+            attributionControl: true,
+        });
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution:
+                '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        }).addTo(map);
+
+        const marker = L.marker([pos.lat, pos.lng], { draggable: true }).addTo(map);
+
+        map.on('click', (e: import('leaflet').LeafletMouseEvent) => {
+            marker.setLatLng(e.latlng);
+            setPos({ lat: e.latlng.lat, lng: e.latlng.lng });
+        });
+        marker.on('dragend', () => {
+            const ll = marker.getLatLng();
+            setPos({ lat: ll.lat, lng: ll.lng });
+        });
+
+        mapRef.current = map;
+        markerRef.current = marker;
+
+        return () => {
+            map.remove();
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open, Lmod]);
+
+    const confirm = async () => {
+        // Nominatim free reverse geocode — no key needed
+        setBusy(true);
+        try {
+            const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&lat=${pos.lat}&lon=${pos.lng}`;
+            const res = await fetch(url, { headers: { Accept: 'application/json' } });
+            const data: { display_name?: string } = await res.json();
+            const address = data?.display_name || `${pos.lat.toFixed(6)}, ${pos.lng.toFixed(6)}`;
+            onSelect({ address, lat: pos.lat, lng: pos.lng });
+        } finally {
+            setBusy(false);
+        }
+    };
+
+    if (!open) return null;
+
+    return (
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-[1000] p-4 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+            <div className="relative z-10 w-full max-w-3xl bg-white rounded-2xl border border-[#E3ECF9] shadow-xl overflow-hidden">
+                <div className="flex items-center justify-between p-4 border-b border-[#E3ECF9]">
+                    <div className="flex items-center gap-2 text-lg font-semibold text-[#002353]">
+                        <span className="text-[#8091A8] text-[18px]">📍</span>
+                        <span>Select location</span>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="px-3 py-1.5 rounded-lg border border-[#BFD3FF] bg-white text-[#0B2B57] text-sm font-semibold hover:bg-[#F5FAFF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3871C1]"
+                    >
+                        Close
+                    </button>
+                </div>
+
+                <div className="h-[60vh]">
+                    <div ref={mapEl} className="w-full h-full" />
+                </div>
+
+                <div className="p-4 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+                    <div className="text-sm text-[#5C7188]">
+                        Drag the pin or click the map. Current:{' '}
+                        <span className="font-medium">{pos.lat.toFixed(5)}, {pos.lng.toFixed(5)}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={confirm}
+                            disabled={busy}
+                            className="px-4 py-2 rounded-lg bg-[#3871C1] text-white text-sm font-semibold shadow hover:shadow-md disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3871C1] focus-visible:ring-offset-2"
+                        >
+                            {busy ? 'Getting address…' : 'Use this location'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};

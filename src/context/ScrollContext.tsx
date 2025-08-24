@@ -3,7 +3,7 @@
 import { createContext, useContext, useRef } from "react";
 
 type ScrollRefs = {
-  propertySectionRef: React.RefObject<HTMLDivElement>;
+  propertySectionRef: React.MutableRefObject<HTMLElement | null>;
 };
 
 const ScrollContext = createContext<ScrollRefs | null>(null);

@@ -13,7 +13,7 @@ const cards = [
                 <path d="M12.1333 15.9997V14.0264C12.1333 11.4797 13.9333 10.4531 16.1333 11.7197L17.84 12.7064L19.5466 13.6931C21.7466 14.9597 21.7466 17.0397 19.5466 18.3064L17.84 19.2931L16.1333 20.2797C13.9333 21.5464 12.1333 20.5064 12.1333 17.9731V15.9997Z" stroke="white" strokeWidth="3" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
         ),
-        className: 'bg-white/20 text-white',
+        className: 'bg-[#16427f] text-white',
         divClassName: 'bg-[#002353]',
     },
     {
