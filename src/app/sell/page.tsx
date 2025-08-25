@@ -16,6 +16,19 @@ import {
 } from 'react-icons/fa';
 import Image from 'next/image';
 
+const SectionTitle: React.FC<{ icon?: React.ReactNode; title: string }> = ({ icon, title }) => (
+    <div className="flex items-center gap-2 text-lg font-semibold text-[#002353]">
+        {icon && <span className="text-[#8091A8] text-[18px]">{icon}</span>}
+        <span>{title}</span>
+    </div>
+);
+
+const Card: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+    <div className="bg-white/90 backdrop-blur border border-[#E3ECF9] rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
+        {children}
+    </div>
+);
+
 // ---------- Types ----------
 type ChecklistKeys =
     | 'titleDeed'
@@ -27,47 +40,15 @@ type ChecklistKeys =
     | 'transferTaxClearance';
 
 // Hoisted so it's stable and not part of Hook deps
-const checklistMeta: {
-    id: ChecklistKeys;
-    label: string;
-    description: string;
-}[] = [
-        {
-            id: 'titleDeed',
-            label: 'Title Deed / Certificate of Title (TCT or CCT)',
-            description: 'Proves legal ownership of the property.',
-        },
-        {
-            id: 'deedOfSale',
-            label: 'Deed of Absolute Sale (DOAS)',
-            description: 'Indicates the transfer agreement between seller and buyer.',
-        },
-        {
-            id: 'taxDec',
-            label: 'Tax Declaration',
-            description: 'Shows the assessed property value for tax purposes.',
-        },
-        {
-            id: 'taxReceipts',
-            label: 'Latest Property Tax Receipts',
-            description: 'Verifies payment of real property taxes.',
-        },
-        {
-            id: 'encumbranceCert',
-            label: 'Encumbrance Certificate',
-            description: 'Confirms the property has no existing liens or mortgages.',
-        },
-        {
-            id: 'birCar',
-            label: 'BIR Certificate Authorizing Registration (CAR)',
-            description: 'Issued by BIR to allow transfer of property title.',
-        },
-        {
-            id: 'transferTaxClearance',
-            label: 'Transfer Tax Clearance from LGU',
-            description: 'Certifies payment of transfer tax to the local government.',
-        },
-    ];
+const checklistMeta: { id: ChecklistKeys; label: string; description: string }[] = [
+    { id: 'titleDeed', label: 'Title Deed / Certificate of Title (TCT or CCT)', description: 'Proves legal ownership of the property.' },
+    { id: 'deedOfSale', label: 'Deed of Absolute Sale (DOAS)', description: 'Indicates the transfer agreement between seller and buyer.' },
+    { id: 'taxDec', label: 'Tax Declaration', description: 'Shows the assessed property value for tax purposes.' },
+    { id: 'taxReceipts', label: 'Latest Property Tax Receipts', description: 'Verifies payment of real property taxes.' },
+    { id: 'encumbranceCert', label: 'Encumbrance Certificate', description: 'Confirms the property has no existing liens or mortgages.' },
+    { id: 'birCar', label: 'BIR Certificate Authorizing Registration (CAR)', description: 'Issued by BIR to allow transfer of property title.' },
+    { id: 'transferTaxClearance', label: 'Transfer Tax Clearance from LGU', description: 'Certifies payment of transfer tax to the local government.' },
+];
 
 // ---------- Component ----------
 const SellPage: React.FC = () => {
@@ -100,7 +81,6 @@ const SellPage: React.FC = () => {
         lat: null as number | null,
         lng: null as number | null,
     });
-
     const [isMapOpen, setIsMapOpen] = useState(false);
 
     // Safe local previews (avoid memory leaks)
@@ -111,9 +91,7 @@ const SellPage: React.FC = () => {
         return () => urls.forEach((u) => URL.revokeObjectURL(u));
     }, [formData.images]);
 
-    const handleInputChange = (
-        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-    ) => {
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setFormData((prev) => ({ ...prev, [name]: value }));
         if (name === 'description') setDescCount(value.length);
@@ -131,25 +109,14 @@ const SellPage: React.FC = () => {
     };
 
     const acceptImage = (f: File) =>
-        ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'].includes(f.type) &&
-        f.size <= 10 * 1024 * 1024;
+        ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'].includes(f.type) && f.size <= 10 * 1024 * 1024;
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const picked = Array.from(e.target.files || []).filter(acceptImage);
         const next = [...formData.images, ...picked].slice(0, 25);
         setFormData((prev) => ({ ...prev, images: next }));
     };
-    const SectionTitle: React.FC<{ icon?: React.ReactNode; title: string }> = ({ icon, title }) => (
-        <div className="flex items-center gap-2 text-lg font-semibold text-[#002353]">
-            {icon && <span className="text-[#8091A8] text-[18px]">{icon}</span>}
-            <span>{title}</span>
-        </div>
-    );
-    const Card: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-        <div className="bg-white/90 backdrop-blur border border-[#E3ECF9] rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
-            {children}
-        </div>
-    );
+
     const onDropFiles = useCallback(
         (files: FileList | null) => {
             if (!files) return;
@@ -188,18 +155,14 @@ const SellPage: React.FC = () => {
     };
 
     return (
-        <section
-            className="relative min-h-screen pt-[30px] pb-24 px-6 text-[#002353] bg-gradient-to-b from-white to-[#D2E4FF]"
-        >
+        <section className="relative min-h-screen pt-[30px] pb-24 px-6 text-[#002353] bg-gradient-to-b from-white to-[#D2E4FF]">
             {/* subtle backdrop pattern */}
             <div className="pointer-events-none absolute inset-0 opacity-[0.08] [background:radial-gradient(circle_at_1px_1px,#0a3a821a_1px,transparent_0)] bg-[size:24px_24px]" />
 
             <div className="relative max-w-6xl mx-auto flex flex-col gap-8">
                 {/* Header */}
                 <div className="text-center flex flex-col gap-2 animate-fadeIn">
-                    <h1 className="text-[40px] font-bold leading-[1.2] tracking-tight">
-                        Sell Your Property
-                    </h1>
+                    <h1 className="text-[40px] font-bold leading-[1.2] tracking-tight">Sell Your Property</h1>
                     <p className="text-[#5C7188] text-[16px] max-w-md mx-auto">
                         Create a stunning listing and get noticed by serious buyers.
                     </p>
@@ -217,12 +180,10 @@ const SellPage: React.FC = () => {
                                         type="button"
                                         aria-pressed={formData.type === 'rent'}
                                         onClick={() => setFormData((prev) => ({ ...prev, type: 'rent' }))}
-                                        className={
-                                            (formData.type === 'rent'
-                                                ? 'bg-[#3871C1] text-white shadow '
-                                                : 'bg-white text-[#0B2B57] border border-[#BFD3FF] hover:bg-[#F5FAFF] ') +
-                                            'px-4 py-2 rounded-[10px] text-sm font-semibold transition-all outline-none focus-visible:ring-2 focus-visible:ring-[#3871C1] focus-visible:ring-offset-2'
-                                        }
+                                        className={`px-4 py-2 rounded-[10px] text-sm font-semibold transition-all outline-none focus-visible:ring-2 focus-visible:ring-[#3871C1] focus-visible:ring-offset-2 ${formData.type === 'rent'
+                                            ? 'bg-[#3871C1] text-white shadow'
+                                            : 'bg-white text-[#0B2B57] border border-[#BFD3FF] hover:bg-[#F5FAFF]'
+                                            }`}
                                     >
                                         For Rent
                                     </button>
@@ -232,12 +193,10 @@ const SellPage: React.FC = () => {
                                         type="button"
                                         aria-pressed={formData.type === 'buy'}
                                         onClick={() => setFormData((prev) => ({ ...prev, type: 'buy' }))}
-                                        className={
-                                            (formData.type === 'buy'
-                                                ? 'bg-[#3871C1] text-white shadow '
-                                                : 'bg-white text-[#0B2B57] border border-[#BFD3FF] hover:bg-[#F5FAFF] ') +
-                                            'px-4 py-2 rounded-[10px] text-sm font-semibold transition-all outline-none focus-visible:ring-2 focus-visible:ring-[#3871C1] focus-visible:ring-offset-2'
-                                        }
+                                        className={`px-4 py-2 rounded-[10px] text-sm font-semibold transition-all outline-none focus-visible:ring-2 focus-visible:ring-[#3871C1] focus-visible:ring-offset-2 ${formData.type === 'buy'
+                                            ? 'bg-[#3871C1] text-white shadow'
+                                            : 'bg-white text-[#0B2B57] border border-[#BFD3FF] hover:bg-[#F5FAFF]'
+                                            }`}
                                     >
                                         For Sale
                                     </button>
@@ -285,9 +244,7 @@ const SellPage: React.FC = () => {
                                             Pick on map
                                         </button>
                                     </div>
-                                    <p className="text-xs text-[#8091A8]">
-                                        Type an address or pick a location to auto-fill it.
-                                    </p>
+                                    <p className="text-xs text-[#8091A8]">Type an address or pick a location to auto-fill it.</p>
                                     {formData.lat && formData.lng && (
                                         <p className="text-xs text-[#5C7188]">
                                             Selected:&nbsp;
@@ -313,44 +270,37 @@ const SellPage: React.FC = () => {
                                                 className="w-full border border-[#D2E4FF] pl-9 pr-3 py-3 rounded-xl text-sm placeholder-[#9AA6B2] focus:outline-none focus:ring-2 focus:ring-[#3871C1] transition"
                                                 aria-label="Price in Philippine pesos"
                                             />
-                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8091A8] text-[15px] select-none">
-                                                ₱
-                                            </span>
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8091A8] text-[15px] select-none">₱</span>
                                         </div>
-                                        {formData.type === 'rent' && (
-                                            <>
-                                                <div className="relative min-w-[140px]">
-                                                    <select
-                                                        name="frequency"
-                                                        value={formData.frequency}
-                                                        onChange={(e) =>
-                                                            setFormData((prev) => ({ ...prev, frequency: e.target.value }))
-                                                        }
-                                                        className="font-medium w-full border border-[#D2E4FF] rounded-xl text-sm px-3 pr-10 py-3 text-[#002353]
-               focus:ring-2 focus:ring-[#3871C1] focus:outline-none transition
-               appearance-none bg-white"
-                                                    >
-                                                        <option value="monthly">month</option>
-                                                        <option value="biweekly">bi-week</option>
-                                                        <option value="weekly">week</option>
-                                                        <option value="daily">day</option>
-                                                    </select>
 
-                                                    {/* custom arrow */}
-                                                    <svg
-                                                        aria-hidden="true"
-                                                        className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 opacity-70"
-                                                        viewBox="0 0 20 20"
-                                                        fill="none"
-                                                    >
-                                                        <path d="M5.5 7.5l4.5 4.5 4.5-4.5" stroke="#002353" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                                    </svg>
-                                                </div>
-                                            </>
+                                        {formData.type === 'rent' && (
+                                            <div className="relative min-w-[140px]">
+                                                <select
+                                                    name="frequency"
+                                                    value={formData.frequency}
+                                                    onChange={(e) => setFormData((prev) => ({ ...prev, frequency: e.target.value }))}
+                                                    className="font-medium w-full border border-[#D2E4FF] rounded-xl text-sm px-3 pr-10 py-3 text-[#002353] focus:ring-2 focus:ring-[#3871C1] focus:outline-none transition appearance-none bg-white"
+                                                >
+                                                    <option value="monthly">month</option>
+                                                    <option value="biweekly">bi-week</option>
+                                                    <option value="weekly">week</option>
+                                                    <option value="daily">day</option>
+                                                </select>
+                                                {/* custom arrow */}
+                                                <svg
+                                                    aria-hidden="true"
+                                                    className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 opacity-70"
+                                                    viewBox="0 0 20 20"
+                                                    fill="none"
+                                                >
+                                                    <path d="M5.5 7.5l4.5 4.5 4.5-4.5" stroke="#002353" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                </svg>
+                                            </div>
                                         )}
                                     </div>
                                     <div className="text-xs text-[#8091A8] mt-1 flex items-center gap-1">
-                                        <FaMoneyBillWave className="opacity-70" /> Numbers only; commas added automatically.
+                                        <FaMoneyBillWave className="opacity-70" />
+                                        Numbers only; commas added automatically.
                                     </div>
                                 </div>
 
@@ -362,24 +312,8 @@ const SellPage: React.FC = () => {
                                     value={formData.size}
                                     onChange={handleInputChange}
                                 />
-                                <Field
-                                    label="Bedrooms"
-                                    name="bed"
-                                    type="number"
-                                    icon={<FaBed />}
-                                    placeholder="e.g. 3"
-                                    value={formData.bed}
-                                    onChange={handleInputChange}
-                                />
-                                <Field
-                                    label="Bathrooms"
-                                    name="bath"
-                                    type="number"
-                                    icon={<FaBath />}
-                                    placeholder="e.g. 2"
-                                    value={formData.bath}
-                                    onChange={handleInputChange}
-                                />
+                                <Field label="Bedrooms" name="bed" type="number" icon={<FaBed />} placeholder="e.g. 3" value={formData.bed} onChange={handleInputChange} />
+                                <Field label="Bathrooms" name="bath" type="number" icon={<FaBath />} placeholder="e.g. 2" value={formData.bath} onChange={handleInputChange} />
                             </div>
                         </Card>
 
@@ -398,14 +332,11 @@ const SellPage: React.FC = () => {
                                         className="w-full px-4 py-3 border border-[#D2E4FF] rounded-[12px] text-sm placeholder-[#9AA6B2] focus:ring-2 focus:ring-[#3871C1] focus:outline-none transition"
                                         aria-describedby="desc-help"
                                     />
-                                    <div
-                                        id="desc-help"
-                                        className="absolute right-3 bottom-2 text-xs text-[#8b98ab]"
-                                        aria-live="polite"
-                                    >
+                                    <div id="desc-help" className="absolute right-3 bottom-2 text-xs text-[#8b98ab]" aria-live="polite">
                                         {descCount}/{DESC_LIMIT}
                                     </div>
                                 </div>
+
                                 <input
                                     type="text"
                                     name="amenities"
@@ -433,32 +364,19 @@ const SellPage: React.FC = () => {
                                         setIsDragging(false);
                                         onDropFiles(e.dataTransfer.files);
                                     }}
-                                    className={`border-2 border-dashed rounded-xl py-10 px-6 flex flex-col items-center justify-center text-center text-sm cursor-pointer transition-all duration-150 group ${isDragging
-                                        ? 'border-[#3871C1] bg-[#EDF3FF]'
-                                        : 'border-[#D2E4FF] bg-[#F9FAFF] hover:bg-[#EDF3FF]'
+                                    className={`border-2 border-dashed rounded-xl py-10 px-6 flex flex-col items-center justify-center text-center text-sm cursor-pointer transition-all duration-150 group ${isDragging ? 'border-[#3871C1] bg-[#EDF3FF]' : 'border-[#D2E4FF] bg-[#F9FAFF] hover:bg-[#EDF3FF]'
                                         }`}
                                 >
                                     <FaImages className="text-2xl mb-2 text-[#3871C1] group-hover:scale-110 transition" />
                                     <span className="font-medium mb-1">Drag & drop or click to upload</span>
-                                    <span className="text-xs text-[#8CA1C6]">
-                                        Up to 10MB each • JPG/PNG/WebP • Max 25 photos
-                                    </span>
-                                    <input
-                                        id="image-upload"
-                                        type="file"
-                                        accept="image/*"
-                                        multiple
-                                        onChange={handleImageChange}
-                                        className="hidden"
-                                    />
+                                    <span className="text-xs text-[#8CA1C6]">Up to 10MB each • JPG/PNG/WebP • Max 25 photos</span>
+                                    <input id="image-upload" type="file" accept="image/*" multiple onChange={handleImageChange} className="hidden" />
                                 </label>
 
                                 {formData.images.length > 0 && (
                                     <>
                                         <div className="flex items-center justify-between text-xs text-[#5C7188]">
-                                            <span>
-                                                {formData.images.length} photo{formData.images.length > 1 ? 's' : ''} added
-                                            </span>
+                                            <span>{formData.images.length} photo{formData.images.length > 1 ? 's' : ''} added</span>
                                             <button
                                                 type="button"
                                                 onClick={() => setFormData((p) => ({ ...p, images: [] }))}
@@ -537,22 +455,18 @@ const SellPage: React.FC = () => {
                                         <span>{checklistProgress.pct}%</span>
                                     </div>
                                     <div className="h-2 w-full rounded-full bg-[#E3ECF9] overflow-hidden">
-                                        <div
-                                            className="h-full bg-[#3871C1] transition-all"
-                                            style={{ width: `${checklistProgress.pct}%` }}
-                                        />
+                                        <div className="h-full bg-[#3871C1] transition-all" style={{ width: `${checklistProgress.pct}%` }} />
                                     </div>
                                 </div>
 
                                 <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                     {checklistMeta.map((item) => {
                                         const checked = checklist[item.id];
+                                        const toggle = () => setChecklist((prev) => ({ ...prev, [item.id]: !prev[item.id] }));
                                         return (
                                             <li
                                                 key={item.id}
-                                                onClick={() =>
-                                                    setChecklist((prev) => ({ ...prev, [item.id]: !prev[item.id] }))
-                                                }
+                                                onClick={toggle}
                                                 className={`flex flex-col gap-1 border rounded-xl px-4 py-3 bg-white transition cursor-pointer hover:shadow-sm ${checked ? 'border-[#9CC0FF] bg-[#F1F6FF]' : 'border-[#E3ECF9]'
                                                     }`}
                                                 role="checkbox"
@@ -561,26 +475,22 @@ const SellPage: React.FC = () => {
                                                 onKeyDown={(e) => {
                                                     if (e.key === 'Enter' || e.key === ' ') {
                                                         e.preventDefault();
-                                                        setChecklist((prev) => ({ ...prev, [item.id]: !prev[item.id] }));
+                                                        toggle();
                                                     }
                                                 }}
                                             >
                                                 <div className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-3 text-sm">
+                                                    <label className="flex items-center gap-3 text-sm cursor-pointer">
                                                         <input
                                                             type="checkbox"
                                                             checked={checked}
-                                                            onChange={() => { }}
+                                                            onChange={toggle}
                                                             className="w-4 h-4 text-[#3871C1] accent-[#3871C1] cursor-pointer"
                                                             aria-label={item.label}
                                                         />
                                                         <span className="font-medium text-[#002353]">{item.label}</span>
-                                                    </div>
-                                                    {checked ? (
-                                                        <FaCheckCircle className="text-[#2f7d32]" />
-                                                    ) : (
-                                                        <FaTimesCircle className="text-[#A7B5C6]" />
-                                                    )}
+                                                    </label>
+                                                    {checked ? <FaCheckCircle className="text-[#2f7d32]" /> : <FaTimesCircle className="text-[#A7B5C6]" />}
                                                 </div>
                                                 <p className="text-xs text-[#60738a] pl-7">{item.description}</p>
                                             </li>
@@ -597,9 +507,7 @@ const SellPage: React.FC = () => {
                             <div className="flex items-center justify-between">
                                 <SectionTitle title="Listing Summary" />
                                 <span
-                                    className={`text-xs font-semibold px-2 py-1 rounded-full ${formData.type === 'rent'
-                                        ? 'bg-[#EAF2FF] text-[#1E4DB7]'
-                                        : 'bg-[#E9FFF3] text-[#0E7A47]'
+                                    className={`text-xs font-semibold px-2 py-1 rounded-full ${formData.type === 'rent' ? 'bg-[#EAF2FF] text-[#1E4DB7]' : 'bg-[#E9FFF3] text-[#0E7A47]'
                                         }`}
                                 >
                                     {formData.type === 'rent' ? 'For Rent' : 'For Sale'}
@@ -609,32 +517,29 @@ const SellPage: React.FC = () => {
                             <div className="mt-4 space-y-3 text-sm">
                                 <SummaryRow label="Title" value={formData.title || '—'} />
                                 <SummaryRow label="Address" value={formData.address || '—'} />
+
                                 <SummaryRow
                                     label="Price"
                                     value={
                                         formData.price
-                                            ? `₱ ${formData.price}${formData.type === 'rent' ? ` / ${freqLabel(formData.frequency)}` : ''
-                                            }`
+                                            ? `₱ ${formData.price}${formData.type === 'rent' ? ` / ${freqLabel(formData.frequency)}` : ''}`
                                             : '—'
                                     }
                                 />
+
                                 <div className="grid grid-cols-3 gap-2">
                                     <Chip icon={<FaRulerCombined />} value={formData.size || '—'} />
-                                    <Chip icon={<FaBed />} value={(formData.bed || '—') + ' BR'} />
-                                    <Chip icon={<FaBath />} value={(formData.bath || '—') + ' BA'} />
+                                    <Chip icon={<FaBed />} value={`${formData.bed || '—'} BR`} />
+                                    <Chip icon={<FaBath />} value={`${formData.bath || '—'} BA`} />
                                 </div>
+
                                 <div className="pt-2">
                                     <div className="text-xs text-[#5C7188] mb-1">Checklist</div>
                                     <div className="flex items-center gap-2">
                                         <div className="h-2 flex-1 rounded-full bg-[#E3ECF9] overflow-hidden">
-                                            <div
-                                                className="h-full bg-[#3871C1] transition-all"
-                                                style={{ width: `${checklistProgress.pct}%` }}
-                                            />
+                                            <div className="h-full bg-[#3871C1] transition-all" style={{ width: `${checklistProgress.pct}%` }} />
                                         </div>
-                                        <span className="text-xs text-[#5C7188] w-10 text-right">
-                                            {checklistProgress.pct}%
-                                        </span>
+                                        <span className="text-xs text-[#5C7188] w-10 text-right">{checklistProgress.pct}%</span>
                                     </div>
                                 </div>
                             </div>
@@ -645,10 +550,8 @@ const SellPage: React.FC = () => {
                                 </Button>
                                 {!isValid && (
                                     <p className="mt-2 text-xs text-[#8b98ab] text-center" aria-live="polite">
-                                        Add <span className="font-medium">Title</span>,{' '}
-                                        <span className="font-medium">Address</span>,{' '}
-                                        <span className="font-medium">Price</span>, and{' '}
-                                        <span className="font-medium">Size</span> to enable submission.
+                                        Add <span className="font-medium">Title</span>, <span className="font-medium">Address</span>,{' '}
+                                        <span className="font-medium">Price</span>, and <span className="font-medium">Size</span> to enable submission.
                                     </p>
                                 )}
                             </div>
@@ -665,9 +568,7 @@ const SellPage: React.FC = () => {
                 <LeafletMapPickerModal
                     open={isMapOpen}
                     onClose={() => setIsMapOpen(false)}
-                    initialPosition={
-                        formData.lat && formData.lng ? { lat: formData.lat, lng: formData.lng } : undefined
-                    }
+                    initialPosition={formData.lat && formData.lng ? { lat: formData.lat, lng: formData.lng } : undefined}
                     onSelect={({ address, lat, lng }) => {
                         setFormData((prev) => ({ ...prev, address, lat, lng }));
                         setIsMapOpen(false);
@@ -681,7 +582,6 @@ const SellPage: React.FC = () => {
 export default SellPage;
 
 /* ---------- Helpers ---------- */
-
 const freqLabel = (f: string) =>
     f === 'monthly' ? 'month' : f === 'biweekly' ? 'bi-week' : f === 'weekly' ? 'week' : 'day';
 
@@ -700,7 +600,6 @@ const Chip: React.FC<{ icon?: React.ReactNode; value: string }> = ({ icon, value
 );
 
 /* ---------- Reusable UI ---------- */
-
 interface FieldProps {
     label: string;
     name: string;
@@ -711,15 +610,7 @@ interface FieldProps {
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
-const Field: React.FC<FieldProps> = ({
-    label,
-    name,
-    value,
-    onChange,
-    icon,
-    placeholder,
-    type = 'text',
-}) => (
+const Field: React.FC<FieldProps> = ({ label, name, value, onChange, icon, placeholder, type = 'text' }) => (
     <div className="flex flex-col gap-1 group">
         <label htmlFor={name} className="text-sm font-medium text-[#001619B2]">
             {label}
@@ -756,28 +647,24 @@ const LeafletMapPickerModal: React.FC<{
     const mapEl = React.useRef<HTMLDivElement | null>(null);
     const mapRef = React.useRef<import('leaflet').Map | null>(null);
     const markerRef = React.useRef<import('leaflet').Marker | null>(null);
+
     const [Lmod, setLmod] = React.useState<LeafletNS | null>(null);
-    const [pos, setPos] = React.useState<LatLng>(
-        initialPosition || { lat: 14.5995, lng: 120.9842 } // Manila default
-    );
+    const [pos, setPos] = React.useState<LatLng>(initialPosition || { lat: 14.5995, lng: 120.9842 }); // Manila default
     const [busy, setBusy] = React.useState(false);
 
     // Load Leaflet only on client to avoid SSR issues
     React.useEffect(() => {
         let alive = true;
         (async () => {
-            const L = await import('leaflet');
+            const L = (await import('leaflet')) as LeafletNS;
             if (!alive) return;
-
             // Fix default marker icons when bundling
-            // @ts-expect-error _getIconUrl is private in types; deleting to supply CDN icon URLs
-            delete L.Icon.Default.prototype._getIconUrl;
+            delete (L.Icon.Default.prototype as { _getIconUrl?: unknown })._getIconUrl;
             L.Icon.Default.mergeOptions({
                 iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
                 iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
                 shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
             });
-
             setLmod(L);
         })();
         return () => {
@@ -787,19 +674,12 @@ const LeafletMapPickerModal: React.FC<{
 
     React.useEffect(() => {
         if (!open || !mapEl.current || !Lmod) return;
-
         const L = Lmod;
-        const map = L.map(mapEl.current, {
-            center: [pos.lat, pos.lng],
-            zoom: 15,
-            zoomControl: true,
-            attributionControl: true,
-        });
+        const map = L.map(mapEl.current, { center: [pos.lat, pos.lng], zoom: 15, zoomControl: true, attributionControl: true });
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
-            attribution:
-                '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         }).addTo(map);
 
         const marker = L.marker([pos.lat, pos.lng], { draggable: true }).addTo(map);
@@ -808,6 +688,7 @@ const LeafletMapPickerModal: React.FC<{
             marker.setLatLng(e.latlng);
             setPos({ lat: e.latlng.lat, lng: e.latlng.lng });
         });
+
         marker.on('dragend', () => {
             const ll = marker.getLatLng();
             setPos({ lat: ll.lat, lng: ll.lng });
@@ -862,8 +743,7 @@ const LeafletMapPickerModal: React.FC<{
 
                 <div className="p-4 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
                     <div className="text-sm text-[#5C7188]">
-                        Drag the pin or click the map. Current:{' '}
-                        <span className="font-medium">{pos.lat.toFixed(5)}, {pos.lng.toFixed(5)}</span>
+                        Drag the pin or click the map. Current: <span className="font-medium">{pos.lat.toFixed(5)}, {pos.lng.toFixed(5)}</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <button

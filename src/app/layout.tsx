@@ -4,6 +4,8 @@ import "./globals.css";
 import HeaderNavbar from "@/components/headerNavbar";
 import { ScrollProvider } from "@/context/ScrollContext";
 import Footer from "@/components/footer";
+import Providers from "./provider";
+import Script from "next/script";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta-sans",
@@ -26,13 +28,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={plusJakartaSans.variable}>
-      {/* <head>
+      <head>
         <Script src='https://www.noupe.com/embed/01984fd9285d7c2d834d0f6cf7d0c68cb148.js' />
-      </head> */}
+      </head>
       <body className="antialiased">
         <ScrollProvider>
-          <HeaderNavbar />
-          {children}
+          <Providers><HeaderNavbar />{children}</Providers>
           <Footer />
         </ScrollProvider>
       </body>

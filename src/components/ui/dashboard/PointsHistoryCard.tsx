@@ -134,6 +134,7 @@ const PointsHistoryCard: React.FC<PointsHistoryCardProps> = ({
               fill="url(#points-area)"
               fillOpacity={1}
               isAnimationActive
+              hide
             />
 
             <Line

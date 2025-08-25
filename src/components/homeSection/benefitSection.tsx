@@ -31,7 +31,6 @@ const BenefitSection: React.FC = () => {
                     </p>
                     <p className="text-[#002353]/50 text-[16px] 2xl:text-[22px]">
                         {"At "}<b>{"Hiraya Homes,"}</b>{" we connect people with homes that match their lifestyle and budget. Whether you’re looking to rent, buy, or sell,"}
-                        <br className="hidden xl:block" />
                         {" our trusted team ensures you find the right property with ease."}
                     </p>
                 </div>

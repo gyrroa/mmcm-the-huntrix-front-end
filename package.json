@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.85.5",
     "class-variance-authority": "^0.7.1",
     "framer-motion": "^12.23.9",
     "leaflet": "^1.9.4",

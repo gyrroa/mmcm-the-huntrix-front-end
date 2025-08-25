@@ -2,9 +2,13 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
+import { useLogin, useRegister } from '@/features/auth/hooks';
+import { ApiError, extractFastApiMessage } from '@/lib/http';
+
+// NEW: hooks for FastAPI auth
 
 /** ---------- Shared ---------- */
 
@@ -53,10 +57,13 @@ type LoginFormState = {
 type LoginErrors = Partial<Record<keyof LoginFormState, string>>;
 
 function LoginCard() {
+  const router = useRouter();
   const [form, setForm] = useState<LoginFormState>({ email: '', password: '', remember: true });
-  const [showPw, setShowPw] = useState(false);
   const [errors, setErrors] = useState<LoginErrors>({});
-  const [submitting, setSubmitting] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
+
+  // NEW: mutation hook
+  const login = useLogin();
 
   const validate = (): boolean => {
     const e: LoginErrors = {};
@@ -70,18 +77,31 @@ function LoginCard() {
 
   const onSubmit = async (ev: React.FormEvent) => {
     ev.preventDefault();
+    setServerError(null);
     if (!validate()) return;
-    setSubmitting(true);
-    try {
-      // TODO: replace with your auth call
-      console.log('Logging in with:', form);
-      // router.push('/dashboard');
-    } catch {
-      setErrors((prev) => ({ ...prev, password: 'Invalid credentials.' }));
-    } finally {
-      setSubmitting(false);
-    }
+
+    login.mutate(
+      { email: form.email, password: form.password },
+      {
+        onError: (e: unknown) => {
+          const fallback = 'Invalid credentials.';
+          const msg =
+            e instanceof ApiError
+              ? (extractFastApiMessage(e.body) ?? e.message ?? fallback)
+              : e instanceof Error
+                ? (e.message || fallback)
+                : fallback;
+
+          setServerError(msg);
+          setErrors((prev) => ({ ...prev, password: undefined })); // avoid duplicate red text
+        },
+        onSuccess: () => {
+          router.push('/');
+        },
+      }
+    );
   };
+
 
   return (
     <motion.div
@@ -142,33 +162,16 @@ function LoginCard() {
           <div className={`mt-2 flex items-center rounded-lg bg-[#F9FAFF] border-2 ${errors.password ? 'border-red-400' : 'border-[#D2E4FF]'} focus-within:ring-2 ${errors.password ? 'focus-within:ring-red-300' : 'focus-within:ring-[#3871C1]/50'}`}>
             <input
               id="password"
-              type={showPw ? 'text' : 'password'}
+              type={'password'}
               autoComplete="current-password"
               value={form.password}
               onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
               className="w-full bg-transparent px-4 py-3 text-sm sm:text-base placeholder-[#5C7188]/70 text-[#002353] focus:outline-none"
               placeholder="••••••••"
             />
-            <button
-              type="button"
-              aria-label={showPw ? 'Hide password' : 'Show password'}
-              onClick={() => setShowPw((s) => !s)}
-              className="px-3 py-2 text-[#5C7188] hover:text-[#002353] focus:outline-none"
-            >
-              {showPw ? (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M3 3l18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                  <path d="M10.58 10.58A3 3 0 0012 15a3 3 0 002.42-4.42M9.88 5.08A10.47 10.47 0 0112 5c5 0 9.27 3.11 10.5 7.5a10.64 10.64 0 01-2.26 3.9M6.12 6.12A10.6 10.6 0 001.5 12.5a10.62 10.62 0 003.4 4.64" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                </svg>
-              ) : (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M1.5 12.5C2.73 8.11 7 5 12 5s9.27 3.11 10.5 7.5C21.27 16.89 17 20 12 20S2.73 16.89 1.5 12.5z" stroke="currentColor" strokeWidth="2" />
-                  <circle cx="12" cy="12.5" r="3" stroke="currentColor" strokeWidth="2" />
-                </svg>
-              )}
-            </button>
           </div>
           {errors.password && <p className="mt-2 text-sm text-red-500">{errors.password}</p>}
+          {serverError && <p className="mt-2 text-sm text-red-500">{serverError}</p>}
         </div>
 
         <label className="mt-1 inline-flex items-center gap-2 select-none">
@@ -183,10 +186,10 @@ function LoginCard() {
 
         <button
           type="submit"
-          disabled={submitting}
+          disabled={login.isPending}
           className="mt-2 inline-flex w-full items-center justify-center rounded-lg bg-[#004899] text-white px-4 py-3 text-sm sm:text-base font-semibold enabled:hover:bg-[#0b3a7e] disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#3871C1]/50 transition cursor-pointer"
         >
-          {submitting ? 'Signing in…' : 'Sign in'}
+          {login.isPending ? 'Signing in…' : 'Sign in'}
         </button>
       </form>
 
@@ -208,21 +211,27 @@ type RegisterFormState = {
   email: string;
   password: string;
   confirm: string;
+  referralCode?: string;
 };
 
 type RegisterErrors = Partial<Record<keyof RegisterFormState, string>>;
 
 function RegisterCard() {
+  const router = useRouter();
   const [form, setForm] = useState<RegisterFormState>({
     firstName: '',
     lastName: '',
     email: '',
     password: '',
     confirm: '',
+    referralCode: '',
   });
-  const [showPw, setShowPw] = useState(false);
   const [errors, setErrors] = useState<RegisterErrors>({});
-  const [submitting, setSubmitting] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
+  const [serverOk, setServerOk] = useState<string | null>(null);
+
+  // NEW: mutation hook
+  const reg = useRegister();
 
   const validate = (): boolean => {
     const e: RegisterErrors = {};
@@ -239,19 +248,39 @@ function RegisterCard() {
 
   const onSubmit = async (ev: React.FormEvent) => {
     ev.preventDefault();
+    setServerError(null);
+    setServerOk(null);
     if (!validate()) return;
-    setSubmitting(true);
-    try {
-      // TODO: call your register API
-      console.log('Register with:', {
-        ...form,
-        // If your backend expects "fullName", you can also send:
-        // fullName: `${form.firstName} ${form.lastName}`.trim(),
-      });
-      // router.push('/dashboard');
-    } finally {
-      setSubmitting(false);
-    }
+
+    reg.mutate(
+      {
+        email: form.email,
+        first_name: form.firstName,
+        last_name: form.lastName,
+        password: form.password,
+        referral_code:
+          form.referralCode && form.referralCode.trim() !== ""
+            ? Number(form.referralCode)
+            : undefined, // <-- only send when present
+      },
+      {
+        onError: (e: unknown) => {
+          const fallback = 'Could not create account.';
+          const msg =
+            e instanceof ApiError
+              ? (extractFastApiMessage(e.body) ?? e.message ?? fallback)
+              : e instanceof Error
+                ? (e.message || fallback)
+                : fallback;
+
+          setServerError(msg);
+        },
+        onSuccess: (user) => {
+          router.push("/")
+          setServerOk(`Welcome, ${user.first_name}! Check your email to verify.`);
+        },
+      }
+    );
   };
 
   return (
@@ -271,7 +300,7 @@ function RegisterCard() {
         <button
           type="button"
           aria-label="Continue with Google"
-          // onClick={() => signIn('google')} // ← hook up to your auth
+          // onClick={() => signIn('google')}
           className="inline-flex items-center justify-center w-full gap-3 rounded-lg border-2 border-[#D2E4FF] bg-[#F9FAFF] px-4 py-3 text-sm sm:text-base font-medium hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#3871C1]/50 transition cursor-pointer"
         >
           <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
@@ -341,31 +370,13 @@ function RegisterCard() {
           <div className={`mt-2 flex items-center rounded-lg bg-[#F9FAFF] border-2 ${errors.password ? 'border-red-400' : 'border-[#D2E4FF]'} focus-within:ring-2 ${errors.password ? 'focus-within:ring-red-300' : 'focus-within:ring-[#3871C1]/50'}`}>
             <input
               id="regPassword"
-              type={showPw ? 'text' : 'password'}
+              type={'password'}
               autoComplete="new-password"
               value={form.password}
               onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
               className="w-full bg-transparent px-4 py-3 text-sm sm:text-base placeholder-[#5C7188]/70 text-[#002353] focus:outline-none"
               placeholder="••••••••"
             />
-            <button
-              type="button"
-              aria-label={showPw ? 'Hide password' : 'Show password'}
-              onClick={() => setShowPw((s) => !s)}
-              className="px-3 py-2 text-[#5C7188] hover:text-[#002353] focus:outline-none"
-            >
-              {showPw ? (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M3 3l18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                  <path d="M10.58 10.58A3 3 0 0012 15a3 3 0 002.42-4.42M9.88 5.08A10.47 10.47 0 0112 5c5 0 9.27 3.11 10.5 7.5a10.64 10.64 0 01-2.26 3.9M6.12 6.12A10.6 10.6 0 001.5 12.5a10.62 10.62 0 003.4 4.64" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                </svg>
-              ) : (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M1.5 12.5C2.73 8.11 7 5 12 5s9.27 3.11 10.5 7.5C21.27 16.89 17 20 12 20S2.73 16.89 1.5 12.5z" stroke="currentColor" strokeWidth="2" />
-                  <circle cx="12" cy="12.5" r="3" stroke="currentColor" strokeWidth="2" />
-                </svg>
-              )}
-            </button>
           </div>
           {errors.password && <p className="mt-2 text-sm text-red-500">{errors.password}</p>}
         </div>
@@ -382,14 +393,29 @@ function RegisterCard() {
             placeholder="••••••••"
           />
           {errors.confirm && <p className="mt-2 text-sm text-red-500">{errors.confirm}</p>}
+          {serverError && <p className="mt-2 text-sm text-red-500">{serverError}</p>}
+          {serverOk && <p className="mt-2 text-sm text-green-600">{serverOk}</p>}
         </div>
-
+        <div>
+          <label htmlFor="referral" className="block text-sm font-medium text-[#002353]">
+            Referral code <span className="text-[#5C7188]">(optional)</span>
+          </label>
+          <input
+            id="referral"
+            type="number"
+            inputMode="numeric"
+            value={form.referralCode ?? ""}
+            onChange={(e) => setForm((f) => ({ ...f, referralCode: e.target.value }))}
+            className="mt-2 w-full rounded-lg bg-[#F9FAFF] border-2 border-[#D2E4FF] px-4 py-3 text-sm sm:text-base placeholder-[#5C7188]/70 text-[#002353] focus:outline-none focus:ring-2 focus:ring-[#3871C1]/50"
+            placeholder="e.g. 402014"
+          />
+        </div>
         <button
           type="submit"
-          disabled={submitting}
+          disabled={reg.isPending}
           className="mt-2 inline-flex w-full items-center justify-center rounded-lg bg-[#004899] text-white px-4 py-3 text-sm sm:text-base font-semibold enabled:hover:bg-[#0b3a7e] disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#3871C1]/50 transition cursor-pointer"
         >
-          {submitting ? 'Creating account…' : 'Create account'}
+          {reg.isPending ? 'Creating account…' : 'Create account'}
         </button>
       </form>
 
@@ -402,7 +428,6 @@ function RegisterCard() {
     </motion.div>
   );
 }
-
 
 /** ---------- Page (switches by query) ---------- */
 

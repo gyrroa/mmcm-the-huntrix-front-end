@@ -3,20 +3,18 @@
 import Image from 'next/image'
 import React, { useEffect, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
+import { useMe } from '@/features/auth/hooks'
+import { clearToken } from '@/lib/token'
+
 
 // Example user data (swap with your store/auth)
-const isVerified = true
-const userName = 'Barbara D. Smith'
-const avatarSrc = '/testimonialsSection/testimonial1.svg'
-
-// ---- Replace this with your real auth check (e.g., !!session?.user)
-const isLoggedIn = !!userName
-// If using NextAuth:
-// import { useSession, signOut } from 'next-auth/react'
-// const { data: session } = useSession()
-// const isLoggedIn = !!session?.user
 
 const HeaderNavbar: React.FC = () => {
+  const { data: me } = useMe();
+  const isVerified = me?.is_verified ?? false
+  const userName = me?.first_name + " " + me?.last_name
+  const avatarSrc = '/default.jpg'
+  const isLoggedIn = !!me?.first_name
   const router = useRouter()
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
@@ -25,9 +23,9 @@ const HeaderNavbar: React.FC = () => {
   const buttonRef = useRef<HTMLButtonElement | null>(null)
 
   const handleSignOut = () => {
-    // NextAuth example:
-    // signOut({ callbackUrl: '/auth?login' })
-    console.log('Sign out clicked')
+    clearToken();
+    router.replace("/");
+    setTimeout(() => router.refresh(), 0);
   }
 
   // Active when exact match or on a sub-route. Handle '/' safely.
