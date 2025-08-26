@@ -2,9 +2,9 @@
 "use client";
 
 import { useEffect } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { login, registerUser, getCurrentUser } from "./api";
+import { login, registerUser, getCurrentUser, verifyCurrentUser } from "./api";
 import type { RegisterBody, User } from "./types";
 import { setTokens, clearTokens, getToken } from "@/lib/token";
 import { ApiError } from "@/lib/http";
@@ -47,4 +47,28 @@ export function useMe(opts?: { redirectOn401?: boolean }) {
     }, [query.error, redirectOn401, router]);
 
     return query;
+}
+
+export function useVerifyUser() {
+    const qc = useQueryClient();
+    const router = useRouter();
+
+    return useMutation<User, ApiError>({
+        mutationKey: ['verify-me'],
+        mutationFn: () => verifyCurrentUser(),
+        onSuccess: (user) => {
+            // Update the cached /me instantly so UI flips to "Verified"
+            qc.setQueryData<User>(['me', true], user);
+            // (optional) also invalidate any "me" variants just in case
+            qc.invalidateQueries({
+                predicate: (q) => Array.isArray(q.queryKey) && q.queryKey[0] === 'me',
+            });
+        },
+        onError: (err) => {
+            if (err.status === 401 || err.status === 403) {
+                clearTokens();
+                router.replace('/auth?login');
+            }
+        },
+    });
 }

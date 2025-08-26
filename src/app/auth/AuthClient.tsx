@@ -276,7 +276,7 @@ function RegisterCard() {
           setServerError(msg);
         },
         onSuccess: (user) => {
-          router.push("/")
+          router.push("/auth?login")
           setServerOk(`Welcome, ${user.first_name}! Check your email to verify.`);
         },
       }

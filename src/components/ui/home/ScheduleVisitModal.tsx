@@ -208,7 +208,7 @@ const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-start justify-between gap-4 p-6 border-b bg-white/70 backdrop-blur-sm">
+          <div className="flex items-start justify-between gap-4 p-6 border-b border-[#d1d5dc] bg-white/70 backdrop-blur-sm">
             <div className="min-w-0">
               <h2
                 id="schedule-visit-title"
@@ -464,7 +464,7 @@ const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
           </div>
 
           {/* Sticky Actions */}
-          <div className="p-4 border-t bg-white/80 backdrop-blur-sm sticky bottom-0">
+          <div className="p-4 border-t border-[#d1d5dc] bg-white/80 backdrop-blur-sm sticky bottom-0">
             <div className="flex flex-col sm:flex-row justify-end gap-3">
               <button
                 onClick={onClose}

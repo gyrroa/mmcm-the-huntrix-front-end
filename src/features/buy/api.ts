@@ -1,7 +1,7 @@
 import type { Buy, CreateBuyInput, UpdateBuyInput } from "./types";
 import { get, postFormUrlEncoded, sendFormData } from "@/lib/http";
 
-/** Helpers for multipart payloads (images, documents, arrays, etc.) */
+/** Helpers for multipart payloads (images, documents, videos, arrays, etc.) */
 const toBuyFormData = (payload: CreateBuyInput | UpdateBuyInput) => {
   const fd = new FormData();
 
@@ -18,23 +18,28 @@ const toBuyFormData = (payload: CreateBuyInput | UpdateBuyInput) => {
   if (payload.latitude != null) fd.append("latitude", String(payload.latitude));
   if (payload.longitude != null) fd.append("longitude", String(payload.longitude));
 
+  if ("lease_term" in payload && payload.lease_term != null) {
+    // kept for parity; server may ignore on /buy
+    fd.append("lease_term", String(payload.lease_term));
+  }
+
   // arrays (repeat field keys)
   if (Array.isArray(payload.amenities)) {
     for (const a of payload.amenities) fd.append("amenities", a);
   }
-  if (Array.isArray((payload as CreateBuyInput).tags)) {
-    for (const t of (payload as CreateBuyInput).tags!) fd.append("tags", t);
+  if (Array.isArray(payload.tags)) {
+    for (const t of payload.tags) fd.append("tags", t);
   }
-  if (Array.isArray((payload as CreateBuyInput).document_list)) {
-    for (const d of (payload as CreateBuyInput).document_list!) fd.append("document_list", d);
+  if ("document_list" in payload && Array.isArray(payload.document_list)) {
+    for (const d of payload.document_list) fd.append("document_list", d);
   }
 
   // removals (update only)
-  if ("remove_images" in payload && Array.isArray((payload as UpdateBuyInput).remove_images)) {
-    for (const id of (payload as UpdateBuyInput).remove_images!) fd.append("remove_images", id);
+  if ("remove_images" in payload && Array.isArray(payload.remove_images)) {
+    for (const id of payload.remove_images) fd.append("remove_images", id);
   }
-  if ("remove_documents" in payload && Array.isArray((payload as UpdateBuyInput).remove_documents)) {
-    for (const id of (payload as UpdateBuyInput).remove_documents!) fd.append("remove_documents", id);
+  if ("remove_documents" in payload && Array.isArray(payload.remove_documents)) {
+    for (const id of payload.remove_documents) fd.append("remove_documents", id);
   }
 
   // images: support File/Blob or string URLs
@@ -50,13 +55,25 @@ const toBuyFormData = (payload: CreateBuyInput | UpdateBuyInput) => {
   }
 
   // documents: support File/Blob or string URLs
-  if (Array.isArray(payload.documents)) {
+  if ("documents" in payload && Array.isArray(payload.documents)) {
     payload.documents.forEach((item, i) => {
       if (typeof item === "string") {
         fd.append("documents", item);
       } else {
         const filename = (item as File).name ?? `document-${i + 1}.bin`;
         fd.append("documents", item, filename);
+      }
+    });
+  }
+
+  // videos: support File/Blob or string URLs
+  if ("videos" in payload && Array.isArray(payload.videos)) {
+    payload.videos.forEach((item, i) => {
+      if (typeof item === "string") {
+        fd.append("videos", item);
+      } else {
+        const filename = (item as File).name ?? `video-${i + 1}.bin`;
+        fd.append("videos", item, filename);
       }
     });
   }
@@ -94,11 +111,9 @@ export function updateBuy(slug: string, input: UpdateBuyInput): Promise<Buy> {
 
 /** Delete */
 export function deleteBuy(slug: string): Promise<void> {
-  // mirror your rent approach with X-HTTP-Method-Override
   return get<void>(`/buy/${encodeURIComponent(slug)}`, {
     auth: true,
     headers: { "X-HTTP-Method-Override": "DELETE" },
-    // or add a direct DELETE helper in http.ts
   });
 }
 
@@ -112,6 +127,5 @@ export function createPendingSale(params: {
 }
 
 export function confirmSale(lister_buyer_id: string) {
-  // field name per spec differs from rent's confirm
   return postFormUrlEncoded("/buy/confirm", { lister_buyer_id }, { auth: true, method: "POST" });
 }

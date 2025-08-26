@@ -36,3 +36,8 @@ export function refreshToken(refresh_token: string) {
 export function getCurrentUser() {
     return get<User>("/users/me", { auth: true });
 }
+
+export function verifyCurrentUser() {
+  // sendJson<T>(path, body, { auth: true }) — assumes your http.ts supports { auth }
+  return sendJson<User>('/users/verify', {}, { auth: true });
+}

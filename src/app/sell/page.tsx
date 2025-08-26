@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import Button from '@/components/button';
 import {
     FaBed,
     FaBath,
@@ -16,6 +15,8 @@ import {
     FaTags,
     FaCalendarAlt,
     FaListUl,
+    FaVideo,
+    FaInfoCircle,
 } from 'react-icons/fa';
 import Image from 'next/image';
 import { useCreateRent } from '@/features/rent/hooks';
@@ -23,7 +24,7 @@ import { useMe } from '@/features/auth/hooks';
 import { useRouter } from 'next/navigation';
 import { useCreateBuy } from '@/features/buy/hooks';
 
-const SectionTitle: React.FC<{ icon?: React.ReactNode; title: string }> = ({ icon, title }) => (
+const SectionTitle: React.FC<{ icon?: React.ReactNode; title: React.ReactNode }> = ({ icon, title }) => (
     <div className="flex items-center gap-2 text-lg font-semibold text-[#002353]">
         {icon && <span className="text-[#8091A8] text-[18px]">{icon}</span>}
         <span>{title}</span>
@@ -59,6 +60,7 @@ type BasePayload = {
     amenities: string[];
     tags: string[];
     images: File[];
+    videos: File[];
 };
 
 type RentPayload = BasePayload & { lease_term: number };
@@ -117,8 +119,135 @@ const SellPage: React.FC = () => {
         lat: null as number | null,
         lng: null as number | null,
         leaseTermMonths: '12',
+        videos: [] as File[],
     });
+
+    // accept & handle videos
+    const acceptVideo = (f: File) =>
+        ['video/mp4', 'video/webm', 'video/quicktime'].includes(f.type) && f.size <= 100 * 1024 * 1024; // ≤100MB
+
+    const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const picked = Array.from(e.target.files || []).filter(acceptVideo);
+        const next = [...formData.videos, ...picked].slice(0, 5); // cap to 5 videos (tweak as you like)
+        setFormData((prev) => ({ ...prev, videos: next }));
+    };
+
+    // optional simple video previews
+    const [videoPreviews, setVideoPreviews] = useState<string[]>([]);
+    useEffect(() => {
+        const urls = formData.videos.map((f) => URL.createObjectURL(f));
+        setVideoPreviews(urls);
+        return () => urls.forEach((u) => URL.revokeObjectURL(u));
+    }, [formData.videos]);
+
+    /* ---------- Property scoring (BUY & RENT) based on your spec ---------- */
+    const isBuy = formData.type === 'buy';
+
+    // spec constants
+    const PHOTOS_TARGET = 5;
+    const MIN_DESC = 200;
+
+    // helpers
+    const has = (v: unknown) => (typeof v === 'number' ? Number.isFinite(v) : !!String(v ?? '').trim());
+    const textLen = (s: unknown) => String(s ?? '').trim().length;
+
+    // Property Info points (BUY vs RENT)
+    let propertyPts = 0;
+    let propertyMax = 0;
+
+    if (isBuy) {
+        // BUY (Property Information – 30 pts)
+        const W = { title: 2, address: 4, price: 4, saleType: 2, size: 6, bed: 4, bath: 3, desc: 5 };
+        propertyMax = Object.values(W).reduce((a, b) => a + b, 0);
+
+        // NOTE: sale type not in your form; keep 0 for now (add a dropdown later to grant W.saleType)
+        const saleTypePresent = false;
+
+        propertyPts += has(formData.title) ? W.title : 0;
+        propertyPts += has(formData.address) ? W.address : 0;
+        propertyPts += has(formData.price) ? W.price : 0;
+        propertyPts += saleTypePresent ? W.saleType : 0;
+        propertyPts += has(formData.size) ? W.size : 0;
+        propertyPts += has(formData.bed) ? W.bed : 0;
+        propertyPts += has(formData.bath) ? W.bath : 0;
+        propertyPts += textLen(formData.description) >= MIN_DESC ? W.desc : textLen(formData.description) > 0 ? 3 : 0;
+    } else {
+        // RENT (Property Information – 35 pts)
+        const W = { title: 2, address: 4, price: 5, lease: 3, size: 6, bed: 5, bath: 3, desc: 7 };
+        propertyMax = Object.values(W).reduce((a, b) => a + b, 0);
+
+        propertyPts += has(formData.title) ? W.title : 0;
+        propertyPts += has(formData.address) ? W.address : 0;
+        propertyPts += has(formData.price) ? W.price : 0;
+        propertyPts += has(formData.leaseTermMonths) ? W.lease : 0;
+        propertyPts += has(formData.size) ? W.size : 0;
+        propertyPts += has(formData.bed) ? W.bed : 0;
+        propertyPts += has(formData.bath) ? W.bath : 0;
+        propertyPts += textLen(formData.description) >= MIN_DESC ? W.desc : textLen(formData.description) > 0 ? 4 : 0;
+    }
+
+    // Amenities & Tags (10 pts total)
+    const amenitiesCount = formData.amenities.length;
+    const tagsCount = formData.tags.length;
+    const amenitiesPts = amenitiesCount >= 5 ? 6 : amenitiesCount > 0 ? 3 : 0;
+    const tagsPts = tagsCount >= 5 ? 4 : tagsCount > 0 ? 2 : 0;
+    const atPts = amenitiesPts + tagsPts;
+    const atMax = 10;
+
+    // Media Quality (30 pts): Photos 10, Video 20
+    const photosFull = formData.images.length >= PHOTOS_TARGET;
+    const photosPts = photosFull ? 10 : formData.images.length > 0 ? 5 : 0;
+
+    // per spec
+    const photosMax = 10;
+    const videosMax = 20;
+    const docsMax = isBuy ? 30 : 0;
+
+    // Video: grant partial (10) if any video present; to grant full (20), measure duration ≥ 30s.
+    const hasAnyVideo = formData.videos.length > 0;
+    const videosPts = hasAnyVideo ? 10 : 0; // TODO: upgrade to 20 if ≥30s
+    const mediaPts = photosPts + videosPts;
+    const mediaMax = 30;
+
+    // Extra section: BUY = Essential Documents (30 pts) / RENT = Reviews & Ratings (25 pts)
+    let extraLabel = '';
+    let extraPts = 0;
+    let extraMax = 0;
+
+    if (isBuy) {
+        extraLabel = 'Essential Documents';
+        extraMax = 30;
+        // Map your checklist booleans to spec weights
+        const docW = { titleDeed: 4.3, deedOfSale: 4.3, taxDec: 4.3, taxReceipts: 4.3, encumbranceCert: 4.3, birCar: 4.3, lgu: 4.2 };
+        extraPts += checklist.titleDeed ? docW.titleDeed : 0;
+        extraPts += checklist.deedOfSale ? docW.deedOfSale : 0;
+        extraPts += checklist.taxDec ? docW.taxDec : 0;
+        extraPts += checklist.taxReceipts ? docW.taxReceipts : 0;
+        extraPts += checklist.encumbranceCert ? docW.encumbranceCert : 0;
+        extraPts += checklist.birCar ? docW.birCar : 0;
+        extraPts += checklist.transferTaxClearance ? docW.lgu : 0;
+    } else {
+        extraLabel = 'Reviews & Ratings';
+        extraMax = 25;
+        // On create form, reviews data is not available; keep 0 (scored after publish)
+        extraPts = 0;
+    }
+
+    // Totals to 100 per spec
+    const total = propertyPts + atPts + mediaPts + extraPts;
+    const qualityScore = Math.round(total);
+    const pct = Math.min(100, Math.max(0, qualityScore));
+
+    // Expose for UI
+    const sections = {
+        property: { pts: propertyPts, max: propertyMax },
+        at: { pts: atPts, max: atMax },
+        media: { pts: mediaPts, max: mediaMax, details: { photosPts, videosPts, PHOTOS_TARGET } },
+        extra: { label: extraLabel, pts: extraPts, max: extraMax },
+    };
+    const docsPts = isBuy ? (sections ? sections.extra.pts : extraPts) : 0;
     const [isMapOpen, setIsMapOpen] = useState(false);
+    const [scoreInfoOpen, setScoreInfoOpen] = useState(false);
 
     // Safe local previews (avoid memory leaks)
     const [previews, setPreviews] = useState<string[]>([]);
@@ -173,8 +302,7 @@ const SellPage: React.FC = () => {
     const isValid = useMemo(() => {
         const stringMust = ['title', 'address', 'price', 'size'] as const;
         const stringsOk = stringMust.every(k => String(formData[k]).trim().length > 0);
-        const hasImages = formData.images.length > 0;
-        return stringsOk && hasImages;
+        return stringsOk;
     }, [formData]);
 
 
@@ -220,6 +348,7 @@ const SellPage: React.FC = () => {
             amenities: formData.amenities,
             tags: formData.tags,
             images: formData.images,
+            videos: formData.videos,
         };
     };
 
@@ -253,6 +382,7 @@ const SellPage: React.FC = () => {
             lat: null,
             lng: null,
             leaseTermMonths: '12',
+            videos: [],
         });
 
         setChecklist({
@@ -854,14 +984,76 @@ const SellPage: React.FC = () => {
                             </div>
                         </Card>
 
+                        <Card>{/* Video (optional) */}
+                            <div className="flex items-center justify-between gap-2">
+                                <SectionTitle
+                                    icon={<FaVideo />}
+                                    title={
+                                        <>
+                                            <span>Video</span>
+                                            <span className="ml-1 font-normal text-[#5C7188]">(optional)</span>
+                                        </>
+                                    }
+                                />
+                                <span className="inline-flex items-center rounded-full bg-[#EDF3FF] text-[#3871C1] text-xs font-medium px-3 py-1">
+                                    Property listings with videos attract 4× more inquiries.
+                                </span>
+                            </div>
+
+                            <label
+                                htmlFor="video-upload"
+                                className="mt-3 border-2 border-dashed rounded-xl py-6 px-6 flex flex-col items-center justify-center text-center text-sm cursor-pointer transition-all duration-150 border-[#D2E4FF] bg-[#F9FAFF] hover:bg-[#EDF3FF]"
+                            >
+                                <FaVideo className="text-xl mb-2 text-[#3871C1]" />
+                                <span className="font-medium mb-1">Click to upload video</span>
+                                <span className="text-xs text-[#8CA1C6]">MP4/WebM/MOV • Up to 100MB • Max 5</span>
+                                <input id="video-upload" type="file" accept="video/mp4,video/webm,video/quicktime" multiple onChange={handleVideoChange} className="hidden" />
+                            </label>
+
+                            {formData.videos.length > 0 && (
+                                <>
+                                    <div className="flex items-center justify-between text-xs text-[#5C7188] mt-3">
+                                        <span>{formData.videos.length} video{formData.videos.length > 1 ? 's' : ''} added</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => setFormData((p) => ({ ...p, videos: [] }))}
+                                            className="underline underline-offset-2 hover:text-[#3871C1]"
+                                            aria-label="Remove all videos"
+                                        >
+                                            Clear all
+                                        </button>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
+                                        {videoPreviews.map((src, idx) => (
+                                            <div key={`vid-${idx}`} className="relative w-full aspect-video bg-white rounded-lg overflow-hidden border border-[#E3ECF9] group">
+                                                <video src={src} controls className="w-full h-full object-cover" />
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        setFormData((prev) => ({
+                                                            ...prev,
+                                                            videos: prev.videos.filter((_, i) => i !== idx),
+                                                        }))
+                                                    }
+                                                    className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-white/90 text-[#002353] text-base font-bold shadow-sm flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition"
+                                                    title="Remove"
+                                                    aria-label={`Remove video ${idx + 1}`}
+                                                >
+                                                    ×
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+                        </Card>
+
                         {/* Images */}
                         <Card>
                             {/* header + badge (new) */}
                             <div className="flex items-center justify-between gap-2">
-                                <SectionTitle icon={<FaImages />} title="Media" />
-                                <span className="inline-flex items-center rounded-full bg-[#EDF3FF] text-[#3871C1] text-xs font-medium px-3 py-1">
-                                    listings with video get 403% more inquiries
-                                </span>
+                                <SectionTitle icon={<FaImages />} title="Images" />
                             </div>
 
                             <div className="flex flex-col gap-4 mt-4">
@@ -1018,7 +1210,7 @@ const SellPage: React.FC = () => {
                     </div>
 
                     {/* Right column: Live summary + Submit */}
-                    <aside className="xl:w-[340px] xl:sticky xl:top-[118px] xl:self-start">
+                    <aside className="xl:w-[340px] xl:sticky xl:top-[118px] xl:self-start gap-6 flex flex-col">
                         {isLoggedIn ? (
                             <Card>
                                 <div className="flex items-center justify-between">
@@ -1061,6 +1253,16 @@ const SellPage: React.FC = () => {
                                         <Chip icon={<FaBath />} value={`${formData.bath || '—'} BA`} />
                                     </div>
 
+                                    {formData.amenities.length > 0 && (
+                                        <div className="text-xs text-[#5C7188]">
+                                            Amenities:{' '}
+                                            <span className="text-[#002353] font-medium">
+                                                {formData.amenities.slice(0, 3).join(', ')}
+                                                {formData.amenities.length > 3 ? '…' : ''}
+                                            </span>
+                                        </div>
+                                    )}
+
                                     {formData.tags.length > 0 && (
                                         <div className="text-xs text-[#5C7188]">
                                             Tags:{' '}
@@ -1089,16 +1291,47 @@ const SellPage: React.FC = () => {
                                 </div>
 
                                 <div className="pt-5 flex flex-col items-center">
-                                    <Button type="submit" variant="property" disabled={!isValid}>
-                                        {isValid ? 'Submit Property Listing' : 'Complete required fields'}
-                                    </Button>
+                                    <button
+                                        type="submit"
+                                        disabled={!isValid}
+                                        aria-disabled={!isValid}
+                                        className={`group relative inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 font-semibold transition-all
+    ${isValid
+                                                ? 'text-white bg-gradient-to-r from-[#5AA6FF] via-[#3871C1] to-[#2D3E8B] shadow-[0_10px_20px_rgba(56,113,193,0.35)] hover:shadow-[0_12px_24px_rgba(56,113,193,0.5)] focus:outline-none focus:ring-4 focus:ring-[#3871C1]/30 active:translate-y-[1px]'
+                                                : 'text-[#8CA3BF] bg-[#EAF1FC] cursor-not-allowed border border-[#D2E4FF] shadow-none'}
+  `}
+                                        title={isValid ? undefined : 'Please complete the required fields'}
+                                    >
+                                        {/* sheen on hover (when enabled) */}
+                                        {isValid && (
+                                            <span
+                                                className="pointer-events-none absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                aria-hidden="true"
+                                            />
+                                        )}
+
+                                        {/* Icon changes with state */}
+                                        {isValid ? (
+                                            <svg className="relative h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                                <path d="M4 12l16-8-6 16-2-6-8-2z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+                                            </svg>
+                                        ) : (
+                                            <svg className="relative h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                                <path d="M12 9v4m0 4h.01M12 3l9 18H3L12 3z" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                                            </svg>
+                                        )}
+
+                                        <span className="relative">
+                                            {isValid ? 'Submit Property Listing' : 'Complete required fields'}
+                                        </span>
+                                    </button>
+
                                     {!isValid && (
                                         <p className="mt-2 text-xs text-[#8b98ab] text-center" aria-live="polite">
                                             Add <span className="font-medium">Title</span>,{' '}
                                             <span className="font-medium">Address</span>,{' '}
-                                            <span className="font-medium">Price</span>,
-                                            <span className="font-medium">Size</span>, and{' '}
-                                            <span className="font-medium">Media</span> to enable submission.
+                                            <span className="font-medium">Price</span>, and{' '}
+                                            <span className="font-medium">Size</span> to enable submission.
                                         </p>
                                     )}
                                 </div>
@@ -1153,28 +1386,39 @@ const SellPage: React.FC = () => {
                                             </span>
                                         </div>
                                     )}
-
-                                    <div className="pt-2">
-                                        <div className="text-xs text-[#5C7188] mb-1">Checklist</div>
-                                        <div className="flex items-center gap-2">
-                                            <div className="h-2 flex-1 rounded-full bg-[#E3ECF9] overflow-hidden">
-                                                <div
-                                                    className="h-full bg-[#A6B9D6] transition-all"
-                                                    style={{ width: `${checklistProgress.pct}%` }}
-                                                />
-                                            </div>
-                                            <span className="text-xs text-[#5C7188] w-10 text-right">
-                                                {checklistProgress.pct}%
-                                            </span>
-                                        </div>
-                                    </div>
                                 </div>
 
                                 <div className="pt-5 flex flex-col items-center">
                                     {/* wire these up to your auth handlers */}
-                                    <Button type="button" variant="property" onClick={onSignIn}>
-                                        Sign in to continue
-                                    </Button>
+                                    <button
+                                        type="button"
+                                        onClick={onSignIn}
+                                        aria-label="Sign in to continue"
+                                        className="
+    group relative inline-flex items-center justify-center gap-2
+    rounded-xl px-5 py-3 font-semibold text-white
+    bg-gradient-to-r from-[#5AA6FF] via-[#3871C1] to-[#2D3E8B]
+    shadow-[0_10px_20px_rgba(56,113,193,0.35)]
+    transition-all duration-200
+    hover:shadow-[0_12px_24px_rgba(56,113,193,0.5)]
+    focus:outline-none focus:ring-4 focus:ring-[#3871C1]/30
+    active:translate-y-[1px]
+    w-full sm:w-auto
+  "
+                                    >
+                                        {/* subtle hover sheen */}
+                                        <span
+                                            aria-hidden="true"
+                                            className="pointer-events-none absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        />
+                                        {/* lock icon */}
+                                        <svg className="relative h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                            <rect x="4" y="10" width="16" height="10" rx="2" stroke="currentColor" strokeWidth="1.6" />
+                                            <path d="M8 10V8a4 4 0 1 1 8 0v2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                                        </svg>
+                                        <span className="relative">Sign in to continue</span>
+                                    </button>
+
                                     <button
                                         type="button"
                                         className="mt-2 text-xs text-[#1E4DB7] hover:underline"
@@ -1188,6 +1432,131 @@ const SellPage: React.FC = () => {
                                 </div>
                             </Card>
                         )}
+                        {/* Property Score */}
+                        <Card>
+                            <div className="flex items-center justify-between">
+                                <SectionTitle icon={<FaCheckCircle />} title="Property Score" />
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm font-bold text-[#002353]">{qualityScore}/100</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => setScoreInfoOpen(true)}
+                                        className="inline-flex items-center justify-center w-8 h-8 rounded-full border border-[#E3ECF9] text-[#3871C1] hover:bg-[#F5F8FF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3871C1]"
+                                        title="How scoring works"
+                                        aria-label="How scoring works"
+                                    >
+                                        <FaInfoCircle />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="mt-3 w-full">
+                                {/* prettier progress with thresholds */}
+                                <div className="h-3 w-full rounded-full bg-[#EAF2FF] border border-[#D8E6FF] overflow-hidden">
+                                    <div
+                                        role="progressbar"
+                                        aria-valuemin={0}
+                                        aria-valuemax={100}
+                                        aria-valuenow={pct}
+                                        className="h-full transition-[width] duration-500 ease-out rounded-full"
+                                        style={{
+                                            width: `${pct}%`,
+                                            background:
+                                                pct < 40
+                                                    ? 'linear-gradient(90deg,#ef5350,#d32f2f)'
+                                                    : pct < 70
+                                                        ? 'linear-gradient(90deg,#ffd54f,#f9a825)'
+                                                        : 'linear-gradient(90deg,#5AA6FF,#3871C1,#2D3E8B)',
+                                        }}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* compact stat chips with micro-bars */}
+                            <div className="mt-4 grid grid-cols-1 gap-2">
+                                {/* Photos */}
+                                <div className="flex items-center justify-between rounded-xl border border-[#E3ECF9] bg-white px-3 py-2">
+                                    <div className="flex items-center gap-2 text-sm">
+                                        <FaImages className="text-[#3871C1]" />
+                                        <span>Photos</span>
+                                        <span className="text-xs text-[#5C7188]">(≥{PHOTOS_TARGET})</span>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-24 h-1.5 bg-[#EAF2FF] rounded-full overflow-hidden">
+                                            <div
+                                                className="h-full rounded-full bg-[#3871C1]"
+                                                style={{
+                                                    width: `${Math.max(0, Math.min(100, (photosPts / Math.max(1, photosMax)) * 100))}%`,
+                                                }}
+                                            />
+                                        </div>
+                                        <span className="text-sm font-medium">
+                                            {Math.round(photosPts)}/{photosMax}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Video */}
+                                <div className="flex items-center justify-between rounded-xl border border-[#E3ECF9] bg-white px-3 py-2">
+                                    <div className="flex items-center gap-2 text-sm">
+                                        <FaVideo className="text-[#3871C1]" />
+                                        <span>Video</span>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-24 h-1.5 bg-[#EAF2FF] rounded-full overflow-hidden">
+                                            <div
+                                                className="h-full rounded-full bg-[#3871C1]"
+                                                style={{
+                                                    width: `${Math.max(0, Math.min(100, (videosPts / Math.max(1, videosMax)) * 100))}%`,
+                                                }}
+                                            />
+                                        </div>
+                                        <span className="text-sm font-medium">
+                                            {Math.round(videosPts)}/{videosMax}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Documents (buy only) */}
+                                {formData.type === 'buy' && (
+                                    <div className="flex items-center justify-between rounded-xl border border-[#E3ECF9] bg-white px-3 py-2">
+                                        <div className="flex items-center gap-2 text-sm">
+                                            <FaClipboardCheck className="text-[#3871C1]" />
+                                            <span>Documents</span>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-24 h-1.5 bg-[#EAF2FF] rounded-full overflow-hidden">
+                                                <div
+                                                    className="h-full rounded-full bg-[#3871C1]"
+                                                    style={{
+                                                        width: `${Math.max(0, Math.min(100, (docsPts / Math.max(1, docsMax)) * 100))}%`,
+                                                    }}
+                                                />
+                                            </div>
+                                            <span className="text-sm font-medium">
+                                                {Math.round(docsPts)}/{docsMax}
+                                            </span>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Guidance */}
+                            <p className="mt-3 text-xs text-[#8b98ab] text-center">
+                                Add<span className="font-medium">≥ {PHOTOS_TARGET} photos</span> and <span className="font-medium">1 video</span>
+                                {formData.type === 'buy' && <>; complete <span className="font-medium">all documents</span></>}.
+                                <br className="hidden sm:block" />
+                                <button
+                                    type="button"
+                                    onClick={() => setScoreInfoOpen(true)}
+                                    className="mt-1 underline text-[#3871C1] hover:text-[#2D3E8B]"
+                                >
+                                    See how the score is calculated
+                                </button>
+                            </p>
+                        </Card>
+
+
                     </aside>
 
                 </form>
@@ -1264,6 +1633,13 @@ const SellPage: React.FC = () => {
                         </button>
                     </div>
                 </div>
+            )}
+            {scoreInfoOpen && (
+                <ScoreInfoModal
+                    open={scoreInfoOpen}
+                    onClose={() => setScoreInfoOpen(false)}
+                    initialTab={formData.type}
+                />
             )}
         </section>
     );
@@ -1525,3 +1901,187 @@ const LeafletMapPickerModal: React.FC<{
         </div>
     );
 };
+
+/* ---------- Scoring Info Modal (responsive) ---------- */
+const ScoreInfoModal: React.FC<{
+    open: boolean;
+    onClose: () => void;
+    initialTab: 'rent' | 'buy';
+}> = ({ open, onClose, initialTab }) => {
+    const [tab, setTab] = useState<'rent' | 'buy'>(initialTab);
+
+    if (!open) return null;
+
+    return (
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-[1100] p-0 sm:p-4 flex items-end sm:items-center justify-center">
+            {/* overlay */}
+            <button
+                className="absolute inset-0 bg-black/40"
+                onClick={onClose}
+                aria-label="Close"
+            />
+            {/* panel: bottom sheet on mobile, card on desktop */}
+            <div className="relative z-10 w-full sm:max-w-3xl bg-white rounded-t-2xl sm:rounded-2xl border border-[#E3ECF9] shadow-xl overflow-hidden h-[85vh] sm:h-auto sm:max-h-[80vh] flex flex-col">
+                {/* Header (sticky) */}
+                <div className="sticky top-0 z-10 bg-white border-b border-[#E3ECF9]">
+                    <div className="flex items-center justify-between p-4">
+                        <div className="flex items-center gap-2 text-base sm:text-lg font-semibold text-[#002353]">
+                            <FaInfoCircle className="text-[#3871C1]" />
+                            <span>How the Property Score works</span>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="px-3 py-2 rounded-lg border border-[#BFD3FF] bg-white text-[#0B2B57] text-sm font-semibold hover:bg-[#F5FAFF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3871C1]"
+                        >
+                            Close
+                        </button>
+                    </div>
+
+                    {/* Tabs (full-width on mobile, compact on desktop) */}
+                    <div className="px-4 pb-3">
+                        <div className="flex sm:inline-flex w-full sm:w-auto rounded-lg border border-[#E3ECF9] bg-[#F7FAFF] p-1 gap-1">
+                            <button
+                                type="button"
+                                onClick={() => setTab('rent')}
+                                className={`flex-1 sm:flex-none px-3 py-2 text-sm rounded-md transition ${tab === 'rent'
+                                    ? 'bg-white border border-[#D2E4FF] text-[#002353] font-semibold'
+                                    : 'text-[#5C7188] hover:text-[#002353]'}`}
+                            >
+                                For Rent
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setTab('buy')}
+                                className={`flex-1 sm:flex-none px-3 py-2 text-sm rounded-md transition ${tab === 'buy'
+                                    ? 'bg-white border border-[#D2E4FF] text-[#002353] font-semibold'
+                                    : 'text-[#5C7188] hover:text-[#002353]'}`}
+                            >
+                                For Sale
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Body (scrollable) */}
+                <div className="p-3 sm:p-4 overflow-y-auto flex-1">
+                    {tab === 'rent' ? <RentScoreTable /> : <BuyScoreTable />}
+                    <p className="text-[11px] sm:text-xs text-[#8CA1C6] mt-3">
+                        Notes: Description partial credit applies if text is below 200 characters. Photo partial credit applies if fewer than 5 photos or low quality. Video partial credit applies if quality is poor or duration is under 30 seconds.
+                    </p>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+/* ---------- Responsive table helpers ---------- */
+const T = ({ children }: { children: React.ReactNode }) => (
+    <div className="overflow-x-auto -mx-1 sm:mx-0">
+        <table className="min-w-[640px] sm:min-w-0 w-full text-xs sm:text-sm border border-[#E3ECF9] rounded-lg overflow-hidden">
+            {children}
+        </table>
+    </div>
+);
+
+const TH = ({ children }: { children: React.ReactNode }) => (
+    <th className="bg-[#F5F8FF] text-[#0B2B57] font-semibold text-left px-3 py-2 border-b border-[#E3ECF9] whitespace-nowrap">
+        {children}
+    </th>
+);
+
+const TD = ({ children }: { children: React.ReactNode }) => (
+    <td className="px-3 py-2 border-b border-[#EAF2FF] align-top">
+        {children}
+    </td>
+);
+
+const SectionHead = ({ title, points }: { title: string; points: number }) => (
+    <tr>
+        <td colSpan={3} className="bg-[#FAFCFF] text-[#002353] font-semibold px-3 py-2 border-b border-[#E3ECF9]">
+            {title} <span className="text-[#5C7188] font-normal">({points} pts)</span>
+        </td>
+    </tr>
+);
+
+/* ---- RENT table ---- */
+const RentScoreTable: React.FC = () => (
+    <div className="space-y-4">
+        <T>
+            <thead>
+                <tr>
+                    <TH>Item</TH>
+                    <TH>Full Points</TH>
+                    <TH>If Not Met</TH>
+                </tr>
+            </thead>
+            <tbody>
+                <SectionHead title="Property Information" points={35} />
+                <tr><TD>Title</TD><TD>2</TD><TD>0 if missing</TD></tr>
+                <tr><TD>Address</TD><TD>4</TD><TD>0 if missing</TD></tr>
+                <tr><TD>Price (monthly)</TD><TD>5</TD><TD>0 if missing</TD></tr>
+                <tr><TD>Lease Term</TD><TD>3</TD><TD>0 if missing</TD></tr>
+                <tr><TD>Size (sqm / floor area)</TD><TD>6</TD><TD>0 if missing</TD></tr>
+                <tr><TD>Bedrooms</TD><TD>5</TD><TD>0 if missing</TD></tr>
+                <tr><TD>Bathrooms</TD><TD>3</TD><TD>0 if missing</TD></tr>
+                <tr><TD>Description (≥200 chars)</TD><TD>7</TD><TD>4 if &lt;200, 0 if missing</TD></tr>
+
+                <SectionHead title="Amenities & Tags" points={10} />
+                <tr><TD>Amenities (min. 5)</TD><TD>6</TD><TD>3 if &lt;5, 0 if none</TD></tr>
+                <tr><TD>Tags / Keywords (min. 5)</TD><TD>4</TD><TD>2 if &lt;5, 0 if none</TD></tr>
+
+                <SectionHead title="Media Quality" points={30} />
+                <tr><TD>Photos (≥5 clear, HD)</TD><TD>10</TD><TD>5 if &lt;5 or low-quality, 0 if none</TD></tr>
+                <tr><TD>Video (walk-through / drone)</TD><TD>20</TD><TD>10 if poor / &lt;30s, 0 if none</TD></tr>
+
+                <SectionHead title="Reviews & Ratings" points={25} />
+                <tr><TD>Number of Reviews (min. 5)</TD><TD>10</TD><TD>5 if 1–4, 0 if none</TD></tr>
+                <tr><TD>Average Rating (1–5 stars)</TD><TD>10</TD><TD>5 if &lt;4★, 0 if &lt;3★</TD></tr>
+                <tr><TD>Verified Reviewer</TD><TD>5</TD><TD>0 if not verified</TD></tr>
+            </tbody>
+        </T>
+    </div>
+);
+
+/* ---- BUY table ---- */
+const BuyScoreTable: React.FC = () => (
+    <div className="space-y-4">
+        <T>
+            <thead>
+                <tr>
+                    <TH>Item</TH>
+                    <TH>Full Points</TH>
+                    <TH>If Not Met</TH>
+                </tr>
+            </thead>
+            <tbody>
+                <SectionHead title="Property Information" points={30} />
+                <tr><TD>Title</TD><TD>2</TD><TD>—</TD></tr>
+                <tr><TD>Address</TD><TD>4</TD><TD>—</TD></tr>
+                <tr><TD>Price</TD><TD>4</TD><TD>—</TD></tr>
+                <tr><TD>Lease Term / Sale Type</TD><TD>2</TD><TD>—</TD></tr>
+                <tr><TD>Size (sqm / lot/floor area)</TD><TD>6</TD><TD>—</TD></tr>
+                <tr><TD>Bedrooms</TD><TD>4</TD><TD>—</TD></tr>
+                <tr><TD>Bathrooms</TD><TD>3</TD><TD>—</TD></tr>
+                <tr><TD>Description (≥200 chars)</TD><TD>5</TD><TD>3 if &lt;200, 0 if missing</TD></tr>
+
+                <SectionHead title="Amenities & Tags" points={10} />
+                <tr><TD>Amenities (min. 5)</TD><TD>6</TD><TD>3 if &lt;5, 0 if none</TD></tr>
+                <tr><TD>Tags / Keywords (min. 5)</TD><TD>4</TD><TD>2 if &lt;5, 0 if none</TD></tr>
+
+                <SectionHead title="Media Quality" points={30} />
+                <tr><TD>Photos (≥5 clear, HD)</TD><TD>10</TD><TD>5 if &lt;5 or low-quality, 0 if none</TD></tr>
+                <tr><TD>Video (walk-through / drone)</TD><TD>20</TD><TD>10 if poor / &lt;30s, 0 if none</TD></tr>
+
+                <SectionHead title="Essential Documents" points={30} />
+                <tr><TD>Title Deed / TCT or CCT</TD><TD>4.3</TD><TD>0 if missing</TD></tr>
+                <tr><TD>Deed of Absolute Sale (DOAS)</TD><TD>4.3</TD><TD>0 if missing</TD></tr>
+                <tr><TD>Tax Declaration</TD><TD>4.3</TD><TD>0 if missing</TD></tr>
+                <tr><TD>Latest Property Tax Receipts</TD><TD>4.3</TD><TD>0 if missing</TD></tr>
+                <tr><TD>Encumbrance Certificate</TD><TD>4.3</TD><TD>0 if missing</TD></tr>
+                <tr><TD>BIR Certificate Authorizing Registration (CAR)</TD><TD>4.3</TD><TD>0 if missing</TD></tr>
+                <tr><TD>Transfer Tax Clearance (LGU)</TD><TD>4.2</TD><TD>0 if missing</TD></tr>
+            </tbody>
+        </T>
+    </div>
+);

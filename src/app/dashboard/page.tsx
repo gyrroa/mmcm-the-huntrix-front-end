@@ -8,7 +8,8 @@ import {
 import TransactionsSection from '@/components/dashboardSection/transactionSection';
 import TierProgressCard from '@/components/ui/dashboard/TierProgressCard';
 import PointsHistoryCard from '@/components/ui/dashboard/PointsHistoryCard';
-import { useMe } from '@/features/auth/hooks';
+import { useMe, useVerifyUser } from '@/features/auth/hooks';
+import MyListingsSection from '@/components/dashboardSection/myListingSection';
 
 // ---------- Types ----------
 
@@ -152,7 +153,8 @@ const TIER_CARD_UI: Record<TierKey, { from: string; to: string; icon: LucideIcon
 const Dashboard: React.FC = () => {
   // Load current user
   const { data: me, isLoading, error } = useMe(); // redirects to /auth?login on 401/403
-
+  const verify = useVerifyUser();
+  const isVerifying = verify.isPending;
   // Call hooks BEFORE any early return
   const breakdown = useMemo(() => {
     const directCount = me?.direct_referrals ?? 0;
@@ -235,10 +237,71 @@ const Dashboard: React.FC = () => {
                   Welcome back, {me.first_name}! Track your points, tier, and transactions
                 </p>
               </div>
-              <div className="hidden sm:flex items-center gap-2" />
+
+              {/* Right actions */}
+              {me?.is_verified ? (
+                // Fancy verified badge (from your last step)
+                <div className="hidden sm:flex items-center gap-2">
+                  <div
+                    className="group relative inline-flex items-center transition-transform hover:-translate-y-0.5"
+                    aria-label="Verified account"
+                    title="Your account is verified"
+                  >
+                    <span className="inline-flex rounded-2xl p-[2px] bg-gradient-to-r from-emerald-300 via-emerald-500 to-teal-400 shadow-[0_8px_24px_rgba(16,185,129,0.35)]">
+                      <span className="relative inline-flex items-center gap-2 rounded-2xl bg-white/70 backdrop-blur px-3 py-1.5 text-emerald-700">
+                        <svg className="h-4 w-4 text-emerald-600" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <path d="M12 3l7 3v5c0 5-3.5 9-7 10-3.5-1-7-5-7-10V6l7-3z" stroke="currentColor" strokeWidth="1.5" />
+                          <path d="M9.5 12.5l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        <span className="font-semibold">Verified</span>
+                        <span className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-r from-transparent via-white/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true" />
+                      </span>
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                // Unique verify CTA
+                <div className="hidden sm:flex items-center gap-2">
+                  <button
+                    type="button"
+                    id="verifyNowButton"
+                    aria-label="Verify account"
+                    onClick={() => verify.mutate()}
+                    disabled={isVerifying}
+                    className={`
+        group relative inline-flex items-center gap-2 overflow-hidden
+        rounded-xl px-4 py-2 font-semibold text-white
+        bg-gradient-to-r from-[#5AA6FF] via-[#3871C1] to-[#2D3E8B]
+        shadow-[0_10px_20px_rgba(56,113,193,0.35)]
+        transition-all duration-200
+        hover:shadow-[0_12px_24px_rgba(56,113,193,0.5)]
+        focus:outline-none focus:ring-4 focus:ring-[#3871C1]/30
+        active:translate-y-[1px]
+        ${isVerifying ? 'opacity-70 cursor-not-allowed' : ''}
+      `}
+                  >
+                    <span className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-white/10" aria-hidden="true" />
+                    {isVerifying ? (
+                      // spinner
+                      <svg className="relative h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <circle cx="12" cy="12" r="9" stroke="currentColor" strokeOpacity="0.25" strokeWidth="2" />
+                        <path d="M21 12a9 9 0 0 1-9 9" stroke="currentColor" strokeWidth="2" />
+                      </svg>
+                    ) : (
+                      // shield-check
+                      <svg className="relative h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M12 3l7 3v5c0 5-3.5 9-7 10-3.5-1-7-5-7-10V6l7-3z" stroke="currentColor" strokeWidth="1.6" />
+                        <path d="M9.5 12.5l2 2 4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    )}
+                    <span className="relative">{isVerifying ? 'Verifying…' : 'Verify now'}</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </header>
+
 
         {/* Stats */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-10 mt-5">
@@ -268,7 +331,6 @@ const Dashboard: React.FC = () => {
             value={me.points.toLocaleString()}
             subtitle="Earned to date"
             icon={Coins}
-            trend={{ value: 12.5, isPositive: true }}
           />
 
           <StatsCard
@@ -309,7 +371,7 @@ const Dashboard: React.FC = () => {
         </motion.div>
       </section>
 
-      {/* Transactions (still mock until you hook an API) */}
+      <MyListingsSection />
       <TransactionsSection />
     </div>
   );

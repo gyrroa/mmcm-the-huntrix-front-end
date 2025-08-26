@@ -58,7 +58,7 @@ export function useMyPurchases(enabled = true) {
 export function useCreateBuy() {
   const qc = useQueryClient();
   return useMutation({
-    mutationKey: ['createPropertyBuy'],
+    mutationKey: ["createPropertyBuy"],
     mutationFn: (input: CreateBuyInput) => apiCreateBuy(input),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: buyKeys.list() });

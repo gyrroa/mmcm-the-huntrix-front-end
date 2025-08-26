@@ -1,10 +1,10 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import Button from '@/components/button';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import ReviewSection from '@/components/homeSection/reviewSection';
 import ScheduleVisitModal from '@/components/ui/home/ScheduleVisitModal';
 import { Rent } from '@/features/rent/types';
@@ -52,24 +52,101 @@ function pickDocuments(p: Rent | Buy): string[] {
 }
 
 export default function PropertyDetailsPage() {
+  // --- STATE/REFS: keep all hooks before any conditional return ---
+  const touchStartXRef = useRef<number | null>(null);
   const [showVisitModal, setShowVisitModal] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState<number | null>(null);
+
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const closeBtnRef = useRef<HTMLButtonElement | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const [zoom, setZoom] = useState(1);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const isPanningRef = useRef(false);
+  const lastPointRef = useRef<{ x: number; y: number } | null>(null);
+
+  // moved up from below (must be before any early return)
+  const [loadedMap, setLoadedMap] = useState<Record<number, boolean>>({});
+  const markLoaded = (i: number) => setLoadedMap((m) => ({ ...m, [i]: true }));
+
+  // we can't depend on `images` (defined later), so track its count in a ref
+  const imagesCountRef = useRef(0);
+
+  // Keyboard handlers (single effect). No references to functions/vars defined later.
+  useEffect(() => {
+    if (activeImageIndex === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setActiveImageIndex(null);
+        return;
+      }
+      if (e.key === 'ArrowLeft') {
+        setActiveImageIndex((prev) => {
+          if (prev === null) return prev;
+          const len = imagesCountRef.current || 0;
+          if (len === 0) return prev;
+          return prev > 0 ? prev - 1 : len - 1;
+        });
+        return;
+      }
+      if (e.key === 'ArrowRight') {
+        setActiveImageIndex((prev) => {
+          if (prev === null) return prev;
+          const len = imagesCountRef.current || 0;
+          if (len === 0) return prev;
+          return prev < len - 1 ? prev + 1 : 0;
+        });
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = '';
+    };
+  }, [activeImageIndex]);
+
+  // Focus the close button when modal opens (single effect)
+  useEffect(() => {
+    if (activeImageIndex !== null) closeBtnRef.current?.focus();
+  }, [activeImageIndex]);
+
+  // Reset zoom when image changes/closes
+  useEffect(() => {
+    setZoom(1);
+    setOffset({ x: 0, y: 0 });
+  }, [activeImageIndex]);
+
+  const toggleFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await containerRef.current?.requestFullscreen?.();
+        setIsFullscreen(true);
+      } else {
+        await document.exitFullscreen();
+        setIsFullscreen(false);
+      }
+    } catch { }
+  };
+
+  // --- DATA HOOKS ---
   const { data: me } = useMe();
   const currentUserName = (me?.first_name ?? '') + ' ' + (me?.last_name ?? '');
   const router = useRouter();
   const params = useParams();
   const listingType = (params.listingType as ListingType) ?? 'rent';
-  const slug = params.name as string; // ← name is the slug
+  const slug = params.name as string;
 
   const { data: rentData, isLoading: rentLoading, isError: rentError } = useRentList();
   const { data: buyData, isLoading: buyLoading, isError: buyError } = useBuyList();
 
-  // pick the correct dataset for the current listingType
+  // --- MEMOS ---
   const listings = useMemo<(Rent | Buy)[]>(() => {
     return (listingType === 'rent' ? rentData : buyData) ?? [];
   }, [listingType, rentData, buyData]);
 
-  // while fetching the current dataset, show a friendly loading state
+  // --- EARLY RETURNS (safe now because all hooks are above) ---
   if ((listingType === 'rent' && rentLoading) || (listingType === 'buy' && buyLoading)) {
     return (
       <div className="p-20 text-center">
@@ -78,7 +155,6 @@ export default function PropertyDetailsPage() {
       </div>
     );
   }
-  // show an error if the relevant query failed
   if ((listingType === 'rent' && rentError) || (listingType === 'buy' && buyError)) {
     return (
       <div className="p-20 text-center">
@@ -88,9 +164,7 @@ export default function PropertyDetailsPage() {
     );
   }
 
-  // find the property by slug (route param "name")
   const rawProperty = listings.find((p) => p.slug === slug);
-
   if (!rawProperty) {
     return (
       <div className="p-20 text-center">
@@ -100,20 +174,29 @@ export default function PropertyDetailsPage() {
     );
   }
 
-  // Normalized fields across Rent | Buy (no hooks here → no conditional hooks)
+  // --- NORMALIZED FIELDS ---
   const images = pickImages(rawProperty);
+  imagesCountRef.current = images.length; // keep ref in sync (safe to do in render)
   const isPopular = pickIsPopular(rawProperty);
   const documents = pickDocuments(rawProperty);
   const isRent = listingType === 'rent';
 
+  // --- NON-HOOK HELPERS ---
   const openImageModal = (index: number) => setActiveImageIndex(index);
   const closeModal = () => setActiveImageIndex(null);
-  const prevImage = () => setActiveImageIndex((prev) => (prev! > 0 ? prev! - 1 : images.length - 1));
-  const nextImage = () => setActiveImageIndex((prev) => (prev! < images.length - 1 ? prev! + 1 : 0));
+  const prevImage = () =>
+    setActiveImageIndex((prev) => (prev! > 0 ? prev! - 1 : images.length - 1));
+  const nextImage = () =>
+    setActiveImageIndex((prev) => (prev! < images.length - 1 ? prev! + 1 : 0));
 
-  // IMPORTANT: use item.slug (you said name is the slug, but slug is already present)
   const handleClick = (item: Rent | Buy) => {
     router.push(`/${listingType}/${item.slug}`);
+  };
+
+  const formatPricePH = (value: number | string): string => {
+    const n = typeof value === 'number' ? value : Number(String(value).replace(/[^\d.-]/g, ''));
+    if (!Number.isFinite(n)) return '';
+    return new Intl.NumberFormat('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
   };
 
   return (
@@ -157,26 +240,53 @@ export default function PropertyDetailsPage() {
 
       {/* Price & Address */}
       <p className="text-2xl font-semibold text-[#3871C1] mb-1">
-        ₱{rawProperty.price}
+        ₱{formatPricePH(rawProperty.price)}
         {isRent && <span className="text-base font-normal text-[#002353]/60"> /month</span>}
       </p>
       <p className="text-sm text-[#5C7188] mb-6">{rawProperty.address}</p>
 
       {/* Image Gallery */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 mb-10">
-        {(images.length ? images : ['/placeholder.png']).map((src, i) => (
-          <motion.div
-            key={i}
-            onClick={() => openImageModal(i)}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.1 }}
-            whileHover={{ scale: 1.02 }}
-            className="relative aspect-video rounded-xl overflow-hidden shadow-md cursor-pointer"
-          >
-            <Image src={src} alt={`${rawProperty.name} image ${i + 1}`} fill className="object-cover" />
-          </motion.div>
-        ))}
+      <div className="mb-10">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+          {(images.length ? images : ['/placeholder.png'])
+            .slice(0, 3)
+            .map((src, i, arr) => {
+              const showOverlay = i === arr.length - 1 && images.length > arr.length;
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => openImageModal(i)}
+                  className="group relative aspect-[4/3] rounded-xl overflow-hidden shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3871C1]"
+                  aria-label={`Open photo ${i + 1} of ${images.length}`}
+                >
+                  <div className={`absolute inset-0 ${loadedMap[i] ? '' : 'bg-gray-200 animate-pulse'}`} />
+                  <Image
+                    src={src}
+                    alt={`${rawProperty.name} photo ${i + 1}`}
+                    fill
+                    sizes="(min-width:1280px) 33vw, (min-width:768px) 33vw, 50vw"
+                    className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                    onLoadingComplete={() => markLoaded(i)}
+                    loading={i < 3 ? 'eager' : 'lazy'}
+                    draggable={false}
+                  />
+                  {i === 0 && images.length > 0 && (
+                    <span className="absolute left-2 top-2 text-xs font-medium bg-black/50 text-white px-2 py-1 rounded">
+                      {images.length} {images.length === 1 ? 'photo' : 'photos'}
+                    </span>
+                  )}
+                  {showOverlay && (
+                    <div className="absolute inset-0 bg-black/40 text-white flex items-center justify-center">
+                      <span className="text-sm sm:text-base font-medium">
+                        View all photos (+{images.length - arr.length})
+                      </span>
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+        </div>
       </div>
 
       {/* Description */}
@@ -254,42 +364,44 @@ export default function PropertyDetailsPage() {
       />
 
       {/* Similar Properties */}
-      <div className="mb-16">
-        <h2 className="text-2xl font-semibold mb-4">Similar Properties</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {listings
-            .filter((p) => p.slug !== rawProperty.slug)
-            .slice(0, 3)
-            .map((item, index) => (
-              <motion.div
-                key={index}
-                whileHover={{ scale: 1.02 }}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="bg-white rounded-xl shadow overflow-hidden transition cursor-pointer"
-                onClick={() => handleClick(item)}
-              >
-                <div className="relative aspect-video">
-                  <Image
-                    src={pickImages(item)[0] ?? '/placeholder.png'}
-                    alt={item.name}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-                <div className="p-4">
-                  <h3 className="font-semibold text-[#002353]">{item.name}</h3>
-                  <p className="text-sm text-[#5C7188] mb-1">{item.address}</p>
-                  <p className="text-[#3871C1] font-medium text-sm">
-                    ₱{item.price}
-                    {isRent && <span className="text-xs font-normal"> /month</span>}
-                  </p>
-                </div>
-              </motion.div>
-            ))}
+      {listings.filter((p) => p.slug !== rawProperty.slug).length > 0 && (
+        <div className="mb-16">
+          <h2 className="text-2xl font-semibold mb-4">Similar Properties</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {listings
+              .filter((p) => p.slug !== rawProperty.slug)
+              .slice(0, 3)
+              .map((item, index) => (
+                <motion.div
+                  key={index}
+                  whileHover={{ scale: 1.02 }}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="bg-white rounded-xl shadow overflow-hidden transition cursor-pointer"
+                  onClick={() => handleClick(item)}
+                >
+                  <div className="relative aspect-video">
+                    <Image
+                      src={pickImages(item)[0] ?? '/placeholder.png'}
+                      alt={item.name}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                  <div className="p-4">
+                    <h3 className="font-semibold text-[#002353]">{item.name}</h3>
+                    <p className="text-sm text-[#5C7188] mb-1">{item.address}</p>
+                    <p className="text-[#3871C1] font-medium text-sm">
+                      ₱{formatPricePH(item.price)}
+                      {isRent && <span className="text-xs font-normal"> /month</span>}
+                    </p>
+                  </div>
+                </motion.div>
+              ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Floating Contact Section */}
       <motion.div
@@ -349,48 +461,253 @@ export default function PropertyDetailsPage() {
       />
 
       {/* Image Modal */}
+      {/* Image Modal */}
       {activeImageIndex !== null && (
         <div
-          className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-sm flex items-center justify-center transition-opacity"
+          className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Photos of ${rawProperty.name}`}
           onClick={closeModal}
         >
-          <div className="relative max-w-6xl w-full max-h-[90vh] mx-4" onClick={(e) => e.stopPropagation()}>
-            <Image
-              src={images[activeImageIndex]}
-              alt={`Image ${activeImageIndex + 1}`}
-              width={1600}
-              height={1000}
-              className="rounded-xl object-cover h-[80vh] w-full shadow-2xl"
-              priority
-            />
-            <button
-              onClick={closeModal}
-              aria-label="Close modal"
-              className="absolute top-4 right-4 text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm p-2 rounded-full transition cursor-pointer"
+          <motion.div
+            ref={containerRef}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2 }}
+            className="relative w-[92vw] max-w-6xl outline-none"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* --- Focus trap sentinels --- */}
+            <span tabIndex={0} onFocus={() => closeBtnRef.current?.focus()} />
+
+            {/* Top bar (gradient) */}
+            <div className="pointer-events-none absolute left-0 right-0 top-0 z-20 bg-gradient-to-b from-black/60 to-transparent">
+              <div className="pointer-events-auto flex items-center justify-between p-3">
+                <span className="text-white/90 text-sm px-2 py-1 rounded bg-black/30">
+                  {activeImageIndex + 1} / {images.length}
+                </span>
+                <div className="flex items-center gap-2">
+                  {/* Fullscreen */}
+                  <button
+                    onClick={toggleFullscreen}
+                    className="text-white bg-white/10 hover:bg-white/20 p-2 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                    aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+                    title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+                  >
+                    {/* square ↔ fullscreen icons */}
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                      <path stroke="currentColor" strokeWidth="2" d="M8 3H4v4M16 3h4v4M8 21H4v-4M16 21h4v-4" />
+                    </svg>
+                  </button>
+
+                  {/* Zoom toggle */}
+                  <button
+                    onClick={() => setZoom((z) => (z === 1 ? 1.75 : 1))}
+                    className="text-white bg-white/10 hover:bg-white/20 p-2 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                    aria-label={zoom === 1 ? 'Zoom in' : 'Zoom out'}
+                    title={zoom === 1 ? 'Zoom in' : 'Zoom out'}
+                  >
+                    {zoom === 1 ? (
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <path stroke="currentColor" strokeWidth="2" d="M11 4v6M8 7h6M21 21l-5.2-5.2" />
+                        <circle cx="10" cy="10" r="6" stroke="currentColor" strokeWidth="2" />
+                      </svg>
+                    ) : (
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <path stroke="currentColor" strokeWidth="2" d="M8 10h6M21 21l-5.2-5.2" />
+                        <circle cx="10" cy="10" r="6" stroke="currentColor" strokeWidth="2" />
+                      </svg>
+                    )}
+                  </button>
+
+                  {/* Download original */}
+                  <a
+                    href={images[activeImageIndex]}
+                    download
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-white bg-white/10 hover:bg-white/20 p-2 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                    aria-label="Download image"
+                    title="Download"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                      <path stroke="currentColor" strokeWidth="2" d="M12 3v12m0 0l-4-4m4 4 4-4M4 21h16" />
+                    </svg>
+                  </a>
+
+                  {/* Close */}
+                  <button
+                    ref={closeBtnRef}
+                    onClick={closeModal}
+                    className="text-white bg-white/10 hover:bg-white/20 p-2 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                    aria-label="Close"
+                    title="Close"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Image stage with zoom/pan/swipe + side fades */}
+            <div
+              className="relative h-[76vh] sm:h-[78vh] w-full overflow-hidden rounded-xl bg-black select-none"
+              onDoubleClick={() => setZoom((z) => (z === 1 ? 1.75 : 1))}
+              onPointerDown={(e) => {
+                if (zoom === 1) return;
+                isPanningRef.current = true;
+                (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+                lastPointRef.current = { x: e.clientX, y: e.clientY };
+              }}
+              onPointerMove={(e) => {
+                if (!isPanningRef.current || zoom === 1 || !lastPointRef.current) return;
+                const dx = e.clientX - lastPointRef.current.x;
+                const dy = e.clientY - lastPointRef.current.y;
+                lastPointRef.current = { x: e.clientX, y: e.clientY };
+                setOffset((o) => ({ x: o.x + dx, y: o.y + dy }));
+              }}
+              onPointerUp={(e) => {
+                isPanningRef.current = false;
+                lastPointRef.current = null;
+                (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+              }}
+              onWheel={(e) => {
+                if (!e.ctrlKey && !e.metaKey) return;
+                e.preventDefault();
+                setZoom((z) => {
+                  const next = Math.min(3, Math.max(1, z + (e.deltaY < 0 ? 0.15 : -0.15)));
+                  if (next === 1) setOffset({ x: 0, y: 0 });
+                  return next;
+                });
+              }}
+              onTouchStart={(e) => {
+                touchStartXRef.current = e.touches[0].clientX;
+              }}
+              onTouchEnd={(e) => {
+                const startX = touchStartXRef.current ?? 0;
+                const delta = e.changedTouches[0].clientX - startX;
+
+                if (Math.abs(delta) > 50 && zoom === 1) {
+                  if (delta < 0) {
+                    nextImage();
+                  } else {
+                    prevImage();
+                  }
+                }
+
+                touchStartXRef.current = null;
+              }}
+
+              style={{ cursor: zoom === 1 ? 'default' : 'grab' }}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" height="24" width="24" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-            <button
-              onClick={prevImage}
-              aria-label="Previous image"
-              className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white rounded-full p-3 transition shadow-md cursor-pointer"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-6 h-6">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <button
-              onClick={nextImage}
-              aria-label="Next image"
-              className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white rounded-full p-3 transition shadow-md cursor-pointer"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-6 h-6">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </div>
+              {/* Subtle side fades so arrows are readable */}
+              <div className="pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-black/60 to-transparent" />
+              <div className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-black/60 to-transparent" />
+
+              {/* Cross-fade between images */}
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeImageIndex}
+                  initial={{ opacity: 0.6 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0.4 }}
+                  transition={{ duration: 0.18 }}
+                  className="absolute inset-0 will-change-transform"
+                  style={{
+                    transform: `translate3d(${offset.x}px, ${offset.y}px, 0) scale(${zoom})`,
+                    transition: zoom === 1 ? 'transform 150ms ease-out' : undefined,
+                  }}
+                >
+                  <Image
+                    src={images[activeImageIndex]}
+                    alt={`Photo ${activeImageIndex + 1} of ${rawProperty.name}`}
+                    fill
+                    sizes="(min-width:1280px) 1024px, 92vw"
+                    className="object-contain"
+                    priority
+                    draggable={false}
+                  />
+                </motion.div>
+              </AnimatePresence>
+
+              {/* Prev / Next */}
+              <button
+                onClick={prevImage}
+                aria-label="Previous image"
+                className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 text-white rounded-full p-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <button
+                onClick={nextImage}
+                aria-label="Next image"
+                className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 text-white rounded-full p-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+
+              {/* Caption band */}
+              {(rawProperty.aidesc?.[activeImageIndex] || rawProperty.address) && (
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent">
+                  <div className="pointer-events-auto p-3 flex items-start justify-between gap-3">
+                    <p className="text-white/90 text-xl leading-snug line-clamp-2">
+                      {rawProperty.aidesc?.[activeImageIndex] ?? rawProperty.address}
+                    </p>
+
+                    {!!rawProperty.aidesc?.[activeImageIndex] && (
+                      <span className="shrink-0 inline-flex items-center justify-center gap-1 text-white/90 px-3 py-1 rounded text-xl leading-none">
+                        <svg
+                          className="block h-[1em] w-[1em] shrink-0"
+                          viewBox="0 0 24 24"
+                          aria-hidden="true"
+                          fill="currentColor"
+                        >
+                          <path d="M12 2l2.1 4.26 4.7.68-3.4 3.31.8 4.75L12 13.77 7.8 15 8.6 10.25 5.2 6.94l4.7-.68L12 2z" />
+                        </svg>
+                        <span className="italic">Caption is AI generated</span>
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Thumbnails */}
+            {images.length > 1 && (
+              <div className="mt-3 flex gap-2 overflow-x-auto px-1 pb-1">
+                {images.map((thumb, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setActiveImageIndex(i)}
+                    className={`relative h-16 w-24 shrink-0 rounded-md overflow-hidden border
+                ${i === activeImageIndex ? 'border-white' : 'border-white/20'}
+                focus:outline-none focus-visible:ring-2 focus-visible:ring-white`}
+                    aria-label={`Go to photo ${i + 1}`}
+                  >
+                    <Image src={thumb} alt="" fill sizes="96px" className="object-cover" draggable={false} />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Preload neighbors for instant nav */}
+            {images.length > 1 && (
+              <>
+                <Image src={images[(activeImageIndex + 1) % images.length]} alt="" width={1} height={1} className="hidden" priority />
+                <Image src={images[(activeImageIndex - 1 + images.length) % images.length]} alt="" width={1} height={1} className="hidden" priority />
+              </>
+            )}
+
+            {/* --- Focus trap sentinel --- */}
+            <span tabIndex={0} onFocus={() => closeBtnRef.current?.focus()} />
+          </motion.div>
         </div>
       )}
     </motion.div>

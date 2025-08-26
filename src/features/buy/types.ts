@@ -19,13 +19,14 @@ export type Buy = {
 
   bed: number;
   bath: number;
-  size: string;    
+  size: string;
 
   is_popular?: boolean;
   is_available?: boolean;
 
   description?: string | null;
-  lease_term?: number | null; // usually 0 for buy, kept for parity
+  aidesc?: string[];        // AI description (read-only)
+  lease_term?: number | null; // kept for parity, server may ignore
   latitude?: number | null;
   longitude?: number | null;
 
@@ -33,16 +34,21 @@ export type Buy = {
   tags: string[];
 
   images: BuyImageLike[];
+  videos?: string[];        // URLs from server
   /** Free-form labels or required docs */
   document_list: string[];
   /** Server may return URLs/IDs of stored docs */
-  documents: string[];
+  documents?: string[];
 
   lister_id?: string | null;
   buyer_id?: string | null;
 
-  created_at?: string; // ISO datetime
-  updated_at?: string; // ISO datetime
+  lister_name?: string | null;
+  buyer_name?: string | null;
+
+  listed_at?: string;       // ISO datetime (server field)
+  created_at?: string;      // legacy
+  updated_at?: string;      // legacy
 };
 
 /** Payload to create a new buy listing */
@@ -57,6 +63,7 @@ export type CreateBuyInput = {
 
   // optional
   description?: string | null;
+  lease_term?: number | null; // parity; may be ignored by API
   latitude?: number | null;
   longitude?: number | null;
 
@@ -69,13 +76,15 @@ export type CreateBuyInput = {
   /** Uploads or URL strings */
   images?: (File | Blob | string)[];
   documents?: (File | Blob | string)[];
+  videos?: (File | Blob | string)[];
 };
 
 /** Payload to update an existing listing */
-export type UpdateBuyInput = Partial<Omit<CreateBuyInput, "images" | "documents">> & {
+export type UpdateBuyInput = Partial<Omit<CreateBuyInput, "images" | "documents" | "videos">> & {
   /** files/URLs to append */
   images?: (File | Blob | string)[];
   documents?: (File | Blob | string)[];
+  videos?: (File | Blob | string)[];
 
   /** IDs/URLs to remove (server expects repeated fields) */
   remove_images?: string[];

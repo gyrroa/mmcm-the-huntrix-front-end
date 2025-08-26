@@ -15,7 +15,7 @@ const ServiceSection: React.FC = () => {
             ref={sectionRef}
             id="serviceSection"
             // Mobile defaults + exact original restored on lg+
-            className="flex min-h-screen lg:min-h-dvh w-full flex-col items-center justify-center gap-10 lg:gap-[64px] lg:pb-[100px] bg-[#002353] text-center py-20"
+            className="flex w-full flex-col items-center justify-center gap-10 lg:gap-[64px] lg:pb-[100px] bg-[#002353] text-center py-20"
             initial={{ opacity: 0, y: 0 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.7, ease: "easeOut" }}

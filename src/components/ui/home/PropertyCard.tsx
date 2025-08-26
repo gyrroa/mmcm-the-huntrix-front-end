@@ -28,10 +28,23 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ imageSrc, price, name, isPo
         const slug = name.toLowerCase().replace(/\s+/g, '-'); // creates "san-isidro"
         router.push(`/${listingType}/${slug}`);
     };
+
+    const formatPricePH = (value: number | string): string => {
+        const n =
+            typeof value === 'number'
+                ? value
+                : Number(String(value).replace(/[^\d.-]/g, ''));
+        if (!Number.isFinite(n)) return '';
+        return new Intl.NumberFormat('en-PH', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        }).format(n);
+    };
+
     return (
         <div
             onClick={handleClick}
-            className="flex flex-col relative bg-white rounded-lg w-full gap-6 shadow-sm hover:scale-[102%] transition-transform duration-200 cursor-pointer">
+            className="flex flex-col relative bg-white rounded-lg w-full h-full gap-6 shadow-sm hover:scale-[102%] transition-transform duration-200 cursor-pointer">
             {/* Image */}
             <div className="w-full h-[200px] relative">
                 <Image
@@ -83,7 +96,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ imageSrc, price, name, isPo
                 {/* Price & Name */}
                 <div className="flex flex-col gap-[5px]">
                     <h1 className="text-xl md:text-2xl font-extrabold text-[#3871C1] leading-tight">
-                        ₱{price}
+                        ₱{formatPricePH(price)}
                         {listingType === 'rent' && (
                             <span className="text-base font-medium text-[#002353]/50"> /month</span>
                         )}
@@ -93,9 +106,12 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ imageSrc, price, name, isPo
                         {address}
                     </p>
                 </div>
+
+            </div>
+            <div className="mt-auto px-6 pb-6">
                 <div className="w-full h-[1px] bg-[#ECF4FF]" />
                 {/* Features */}
-                <div className="flex flex-wrap justify-between">
+                <div className="flex flex-wrap justify-between mt-4">
                     <Feature icon="/PropertySection/bed.svg" label={`${bed} Beds`} />
                     <Feature icon="/PropertySection/bath.svg" label={`${bath} Bathrooms`} />
                     <Feature icon="/PropertySection/size.svg" label={`${size} m²`} />

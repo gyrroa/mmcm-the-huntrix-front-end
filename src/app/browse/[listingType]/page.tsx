@@ -77,7 +77,7 @@ export default function BrowsePropertiesPage() {
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: 'easeOut' }}
-            className="min-h-screen px-6 sm:px-24 py-5 bg-gradient-to-b from-white to-[#D2E4FF] text-[#002353]"
+            className="min-h-screen px-6 sm:px-24 py-5 pb-20 bg-gradient-to-b from-white to-[#D2E4FF] text-[#002353]"
         >
             <div className="flex flex-col gap-4 items-center text-center mb-10">
                 <h1 className="text-[36px] sm:text-[40px] font-bold leading-snug">
