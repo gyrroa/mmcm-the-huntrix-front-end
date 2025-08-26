@@ -1,3 +1,4 @@
+// rent/hooks.ts
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -58,6 +59,7 @@ export function useMyRentals(enabled = true) {
 export function useCreateRent() {
     const qc = useQueryClient();
     return useMutation({
+        mutationKey: ['createProperty'], 
         mutationFn: (input: CreateRentInput) => apiCreateRent(input),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: rentKeys.list() });

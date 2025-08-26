@@ -153,7 +153,7 @@ const Dashboard: React.FC = () => {
   // Load current user
   const { data: me, isLoading, error } = useMe(); // redirects to /auth?login on 401/403
 
-  // ✅ Call hooks BEFORE any early return
+  // Call hooks BEFORE any early return
   const breakdown = useMemo(() => {
     const directCount = me?.direct_referrals ?? 0;
     const secondaryCount = me?.secondary_referrals ?? 0;

@@ -35,3 +35,7 @@ html {
 .recharts-default-tooltip:focus:not(:focus-visible) {
   outline: none !important;
 }
+
+button, select, option {
+  cursor: pointer;
+}

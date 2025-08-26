@@ -1,6 +1,7 @@
+// auth/api.ts
 "use client";
 
-import { get, postFormUrlEncoded } from "@/lib/http";
+import { get, postFormUrlEncoded, sendJson } from "@/lib/http";
 import type { RegisterBody, LoginResponse, User } from "./types";
 
 /** /register */
@@ -25,6 +26,10 @@ export function login(args: {
         client_id,
         client_secret,
     });
+}
+
+export function refreshToken(refresh_token: string) {
+  return sendJson<LoginResponse>("/auth/refresh", { refresh_token });
 }
 
 /** /users/me */

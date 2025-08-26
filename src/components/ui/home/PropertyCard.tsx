@@ -6,12 +6,12 @@ import { useState } from "react";
 
 type PropertyCardProps = {
     imageSrc: string;
-    price: string;
+    price: number;
     name: string;
     isPopular?: boolean;
     address: string;
-    bed: string;
-    bath: string;
+    bed: number;
+    bath: number;
     size: string;
     listingType: 'rent' | 'buy';
 };

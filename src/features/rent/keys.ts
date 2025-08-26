@@ -1,3 +1,4 @@
+// rent/keys.ts
 export const rentKeys = {
     all: ["rent"] as const,
     list: () => [...rentKeys.all, "list"] as const,

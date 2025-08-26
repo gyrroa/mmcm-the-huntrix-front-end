@@ -1,3 +1,4 @@
+// lib/env.ts
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 if (!BASE_URL) {

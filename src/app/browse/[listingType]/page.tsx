@@ -1,61 +1,77 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import propertyData from '@/data/properties.json';
-import PropertyCard from '@/components/ui/home/PropertyCard';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
+import PropertyCard from '@/components/ui/home/PropertyCard';
+import { useRentList } from '@/features/rent/hooks';
+import { Rent } from '@/features/rent/types';
+import { useBuyList } from '@/features/buy/hooks';
+import { Buy } from '@/features/buy/types';
 
 type ListingType = 'rent' | 'buy';
 
 export default function BrowsePropertiesPage() {
     const router = useRouter();
     const params = useParams();
-    const listingType = params.listingType as ListingType;
+    const listingType = (params.listingType as ListingType) ?? 'rent';
 
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedBedrooms, setSelectedBedrooms] = useState('');
+    const [selectedBedrooms, setSelectedBedrooms] = useState(''); // '' | '1' | ... | '5'
     const [selectedBathrooms, setSelectedBathrooms] = useState('');
     const [showPopularOnly, setShowPopularOnly] = useState(false);
 
-    const [filteredListings, setFilteredListings] = useState(propertyData[listingType] || []);
+    // fetch both; we'll pick based on route
+    const { data: rentData, isLoading: rentLoading, isError: rentError } = useRentList();
+    const { data: buyData, isLoading: buyLoading, isError: buyError } = useBuyList();
 
+    // route guard
     useEffect(() => {
-        if (!['rent', 'buy'].includes(listingType)) {
-            router.push('/');
-        }
+        if (!['rent', 'buy'].includes(listingType)) router.push('/');
     }, [listingType, router]);
 
-    useEffect(() => {
-        const listings = propertyData[listingType] || [];
-        const search = searchTerm.toLowerCase();
+    // popularity derived from tags
+    const isPopularByTags = (tags: string[] = []) => {
+        const hotTags = new Set(['popular', 'featured', 'hot', 'trending', 'top']);
+        return tags.some(t => hotTags.has(t.toLowerCase()));
+    };
 
-        const filtered = listings.filter((item) => {
-            const matchesSearch =
+    // choose the right dataset then split using lease_term
+    const listings = useMemo<Rent[] | Buy[]>(() => {
+        return (listingType === 'rent' ? rentData : buyData) ?? [];
+    }, [listingType, rentData, buyData]);
+
+    // filtering
+    const filteredListings = useMemo(() => {
+        const search = searchTerm.trim().toLowerCase();
+
+        return listings.filter((item) => {
+            const matchesSearch = !search ||
                 item.name.toLowerCase().includes(search) ||
                 item.address.toLowerCase().includes(search) ||
-                item.description?.toLowerCase().includes(search);
+                (item.description?.toLowerCase().includes(search) ?? false);
 
             const matchesBedroom =
                 selectedBedrooms === '' ||
-                (selectedBedrooms === '5'
-                    ? parseInt(item.bed) >= 5
-                    : item.bed === selectedBedrooms);
+                (selectedBedrooms === '5' ? item.bed >= 5 : item.bed === Number(selectedBedrooms));
 
             const matchesBathroom =
                 selectedBathrooms === '' ||
-                (selectedBathrooms === '5'
-                    ? parseInt(item.bath) >= 5
-                    : item.bath === selectedBathrooms);
+                (selectedBathrooms === '5' ? item.bath >= 5 : item.bath === Number(selectedBathrooms));
 
-            const matchesPopular =
-                !showPopularOnly || item.isPopular === true;
+            const matchesPopular = !showPopularOnly || isPopularByTags(item.tags);
 
             return matchesSearch && matchesBedroom && matchesBathroom && matchesPopular;
         });
+    }, [listings, searchTerm, selectedBedrooms, selectedBathrooms, showPopularOnly]);
 
-        setFilteredListings(filtered);
-    }, [searchTerm, selectedBedrooms, selectedBathrooms, showPopularOnly, listingType]);
+
+    const isLoading = listingType === 'rent' ? rentLoading : buyLoading;
+    const isError = listingType === 'rent' ? rentError : buyError;
+
+    const fallbackImage =
+        'https://via.placeholder.com/800x600?text=No+Image';
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 40 }}
@@ -67,27 +83,17 @@ export default function BrowsePropertiesPage() {
                 <h1 className="text-[36px] sm:text-[40px] font-bold leading-snug">
                     {listingType === 'rent' ? 'Browse Rentals' : 'Browse Properties for Sale'}
                 </h1>
-                <p className="text-[16px] text-[#5C7188]">Explore listings tailored to your needs and location.</p>
+                <p className="text-[16px] text-[#5C7188]">
+                    Explore listings tailored to your needs and location.
+                </p>
             </div>
 
             {/* Search bar */}
             <div className="flex justify-center mb-5">
                 <div className="flex items-center bg-[#F9FAFF] border-2 border-[#D2E4FF] rounded-lg px-4 py-[16px] w-full max-w-xl">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none">
-                        <path
-                            d="M11.5 21C16.7467 21 21 16.7467 21 11.5C21 6.25329 16.7467 2 11.5 2C6.25329 2 2 6.25329 2 11.5C2 16.7467 6.25329 21 11.5 21Z"
-                            stroke="#3871C1"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                        />
-                        <path
-                            d="M22 22L20 20"
-                            stroke="#3871C1"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                        />
+                        <path d="M11.5 21C16.7467 21 21 16.7467 21 11.5C21 6.25329 16.7467 2 11.5 2C6.25329 2 2 6.25329 2 11.5C2 16.7467 6.25329 21 11.5 21Z" stroke="#3871C1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d="M22 22L20 20" stroke="#3871C1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                     <input
                         type="text"
@@ -98,6 +104,7 @@ export default function BrowsePropertiesPage() {
                     />
                 </div>
             </div>
+
             {/* Filter Controls */}
             <div className="flex flex-wrap justify-center gap-4 mb-10">
                 {/* Bedrooms Filter */}
@@ -114,7 +121,6 @@ export default function BrowsePropertiesPage() {
                         <option value="4">4 Bedrooms</option>
                         <option value="5">5+ Bedrooms</option>
                     </select>
-                    {/* Down Arrow Icon */}
                     <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
                         <svg className="w-4 h-4 text-[#3871C1]" viewBox="0 0 20 20" fill="currentColor">
                             <path d="M7 7l3-3 3 3m0 6l-3 3-3-3" stroke="currentColor" strokeWidth="1.5" fill="none" />
@@ -136,7 +142,6 @@ export default function BrowsePropertiesPage() {
                         <option value="4">4 Bathrooms</option>
                         <option value="5">5+ Bathrooms</option>
                     </select>
-                    {/* Down Arrow Icon */}
                     <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
                         <svg className="w-4 h-4 text-[#3871C1]" viewBox="0 0 20 20" fill="currentColor">
                             <path d="M7 7l3-3 3 3m0 6l-3 3-3-3" stroke="currentColor" strokeWidth="1.5" fill="none" />
@@ -144,7 +149,7 @@ export default function BrowsePropertiesPage() {
                     </div>
                 </div>
 
-                {/* Popular Checkbox */}
+                {/* Popular Checkbox (derived from tags) */}
                 <label className="flex items-center gap-3 px-4 py-2 border-2 border-[#D2E4FF] bg-[#F9FAFF] rounded-lg text-sm text-[#5C7188] cursor-pointer transition hover:border-[#3871C1]">
                     <div className="relative w-5 h-5">
                         <input
@@ -154,13 +159,7 @@ export default function BrowsePropertiesPage() {
                             className="appearance-none w-5 h-5 rounded-md border border-[#C9DBEE] checked:bg-[#3871C1] checked:border-[#3871C1] transition-all duration-200"
                         />
                         {showPopularOnly && (
-                            <svg
-                                className="absolute top-0 left-0 w-5 h-5 pointer-events-none"
-                                fill="none"
-                                stroke="white"
-                                strokeWidth="2"
-                                viewBox="0 0 24 24"
-                            >
+                            <svg className="absolute top-0 left-0 w-5 h-5 pointer-events-none" fill="none" stroke="white" strokeWidth="2" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                             </svg>
                         )}
@@ -169,9 +168,17 @@ export default function BrowsePropertiesPage() {
                 </label>
             </div>
 
-
-            {/* Property Listings */}
-            {filteredListings.length === 0 ? (
+            {/* States */}
+            {isLoading ? (
+                <div className="text-center mt-20 text-[#5C7188]">
+                    <p className="text-lg font-medium">Loading listings…</p>
+                </div>
+            ) : isError ? (
+                <div className="text-center mt-20 text-[#5C7188]">
+                    <p className="text-lg font-medium">We couldn’t load listings right now.</p>
+                    <p className="text-sm mt-1">Please try again in a moment.</p>
+                </div>
+            ) : filteredListings.length === 0 ? (
                 <div className="text-center mt-20 text-[#5C7188]">
                     <div className="mb-4">
                         <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto" width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="#C0CFE7" strokeWidth={1.5}>
@@ -186,10 +193,17 @@ export default function BrowsePropertiesPage() {
                     {filteredListings.map((property) => (
                         <PropertyCard
                             key={property.slug}
-                            imageSrc={property.images[0]}
+                            imageSrc={
+                                (property.images && property.images.length > 0
+                                    ? (typeof property.images[0] === 'string'
+                                        ? property.images[0]
+                                        : property.images[0]?.url)
+                                    : undefined) ?? fallbackImage
+                            }
                             name={property.name}
                             price={property.price}
-                            isPopular={property.isPopular}
+                            // derive popularity for the card (if the component supports it)
+                            isPopular={isPopularByTags(property.tags)}
                             address={property.address}
                             bed={property.bed}
                             bath={property.bath}

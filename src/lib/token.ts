@@ -1,54 +1,70 @@
+// lib/token.ts
 "use client";
 
 type TokenListener = (token: string | null) => void;
 
-let _token: string | null = null;
-const KEY = "access_token";
+let _accessToken: string | null = null;
+let _refreshToken: string | null = null;
+
+const ACCESS_KEY = "access_token";
+const REFRESH_KEY = "refresh_token";
+
 const listeners = new Set<TokenListener>();
 
-/** Initialize from localStorage lazily */
-function readFromStorage(): string | null {
-    try {
-        return localStorage.getItem(KEY);
-    } catch {
-        return null;
-    }
+function readFromStorage(key: string): string | null {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
 }
 
 export function getToken(): string | null {
-    if (_token !== null) return _token;
-    _token = readFromStorage();
-    return _token;
+  if (_accessToken !== null) return _accessToken;
+  _accessToken = readFromStorage(ACCESS_KEY);
+  return _accessToken;
 }
 
-export function setToken(token: string) {
-    _token = token;
-    try {
-        localStorage.setItem(KEY, token);
-    } catch { }
-    listeners.forEach((cb) => cb(_token));
+export function getRefreshToken(): string | null {
+  if (_refreshToken !== null) return _refreshToken;
+  _refreshToken = readFromStorage(REFRESH_KEY);
+  return _refreshToken;
 }
 
-export function clearToken() {
-    _token = null;
-    try {
-        localStorage.removeItem(KEY);
-    } catch { }
-    listeners.forEach((cb) => cb(_token));
+export function setTokens(access: string, refresh: string) {
+  _accessToken = access;
+  _refreshToken = refresh;
+  try {
+    localStorage.setItem(ACCESS_KEY, access);
+    localStorage.setItem(REFRESH_KEY, refresh);
+  } catch {}
+  listeners.forEach((cb) => cb(_accessToken));
 }
 
-/** Cross-tab sync */
+export function clearTokens() {
+  _accessToken = null;
+  _refreshToken = null;
+  try {
+    localStorage.removeItem(ACCESS_KEY);
+    localStorage.removeItem(REFRESH_KEY);
+  } catch {}
+  listeners.forEach((cb) => cb(_accessToken));
+}
+
+// sync across tabs
 if (typeof window !== "undefined") {
-    window.addEventListener("storage", (e) => {
-        if (e.key === KEY) {
-            _token = e.newValue;
-            listeners.forEach((cb) => cb(_token));
-        }
-    });
+  window.addEventListener("storage", (e) => {
+    if (e.key === ACCESS_KEY) {
+      _accessToken = e.newValue;
+      listeners.forEach((cb) => cb(_accessToken));
+    }
+    if (e.key === REFRESH_KEY) {
+      _refreshToken = e.newValue;
+    }
+  });
 }
 
-/** Subscribe to token changes (login/logout), returns unsubscribe */
 export function subscribeToken(fn: TokenListener) {
-    listeners.add(fn);
-    return () => listeners.delete(fn);
+  listeners.add(fn);
+  return () => listeners.delete(fn);
 }

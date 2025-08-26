@@ -1,4 +1,4 @@
-// src/features/rent/types.ts
+// rent/types.ts
 
 /** A single image associated with a rent listing */
 export type RentImage = {
@@ -18,7 +18,7 @@ export type Rent = {
 
     bed: number;        // number of bedrooms
     bath: number;       // number of bathrooms
-    size: number;       // e.g. in sqm
+    size: string;       
 
     description?: string | null;
     lease_term?: number | null; // e.g. months
@@ -26,6 +26,7 @@ export type Rent = {
     longitude?: number | null;
 
     amenities: string[];
+    tags: string[];
     images: RentImage[];
 
     lister_id?: string | null;
@@ -52,6 +53,7 @@ export type CreateRentInput = {
 
     /** amenity labels (server expects multiple `amenities` fields in form-data) */
     amenities?: string[];
+    tags?: string[];
 
     /** images to upload */
     images?: (File | Blob)[];

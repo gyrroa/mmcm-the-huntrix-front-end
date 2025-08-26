@@ -1,3 +1,4 @@
+// auth/hooks.ts
 "use client";
 
 import { useEffect } from "react";
@@ -5,19 +6,21 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { login, registerUser, getCurrentUser } from "./api";
 import type { RegisterBody, User } from "./types";
-import { setToken, clearToken, getToken } from "@/lib/token";
+import { setTokens, clearTokens, getToken } from "@/lib/token";
 import { ApiError } from "@/lib/http";
 
 export function useRegister() {
     return useMutation({
+        mutationKey: ['register'],
         mutationFn: (data: RegisterBody) => registerUser(data),
     });
 }
 
 export function useLogin() {
     return useMutation({
+        mutationKey: ['login'],
         mutationFn: (data: { email: string; password: string }) => login(data),
-        onSuccess: (res) => setToken(res.access_token),
+        onSuccess: (res) => setTokens(res.access_token, res.refresh_token),
     });
 }
 
@@ -38,7 +41,7 @@ export function useMe(opts?: { redirectOn401?: boolean }) {
     useEffect(() => {
         if (!redirectOn401) return;
         if (query.error && (query.error.status === 401 || query.error.status === 403)) {
-            clearToken();
+            clearTokens();
             router.replace("/auth?login");
         }
     }, [query.error, redirectOn401, router]);

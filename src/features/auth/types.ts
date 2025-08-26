@@ -1,3 +1,4 @@
+// auth/types.ts
 export type User = {
   id: string;
   email: string;
@@ -26,4 +27,9 @@ export type RegisterBody = {
   referral_code?: number | null;
 };
 
-export type LoginResponse = { access_token: string; token_type: string };
+export type LoginResponse = {
+  access_token: string;
+  token_type: string;
+  refresh_token: string;
+};
+

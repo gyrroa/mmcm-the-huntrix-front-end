@@ -4,7 +4,7 @@ import Image from 'next/image'
 import React, { useEffect, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useMe } from '@/features/auth/hooks'
-import { clearToken } from '@/lib/token'
+import { clearTokens } from '@/lib/token'
 
 
 // Example user data (swap with your store/auth)
@@ -23,7 +23,7 @@ const HeaderNavbar: React.FC = () => {
   const buttonRef = useRef<HTMLButtonElement | null>(null)
 
   const handleSignOut = () => {
-    clearToken();
+    clearTokens();
     router.replace("/");
     setTimeout(() => router.refresh(), 0);
   }
