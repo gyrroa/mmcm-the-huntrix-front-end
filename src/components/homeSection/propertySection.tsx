@@ -151,15 +151,27 @@ const PropertySection: React.FC = () => {
             price={property.price}
             isPopular={isPopularByTags(property.tags)}
             address={property.address}
+            freq={property.freq}
             bed={property.bed}
             bath={property.bath}
             size={property.size}
             listingType={tab as ListingType}
+            listedBy={property.lister_name ?? undefined}
+            slug={property.slug}
           />
         ))}
 
         <div className="w-full flex justify-center mt-10 col-span-full">
-          <Button variant="property" onClick={() => router.push(`/browse/${tab}`)}>
+          <Button
+            onClick={() => router.push(`/browse/${tab}`)}
+            className="inline-flex items-center justify-center gap-2 
+             px-6 py-3 rounded-full font-semibold text-white 
+             bg-gradient-to-r from-[#5AA6FF] via-[#3871C1] to-[#2D3E8B] 
+             shadow-[0_8px_20px_rgba(56,113,193,0.35)] 
+             hover:shadow-[0_10px_24px_rgba(56,113,193,0.5)] 
+             hover:scale-[1.03] active:scale-[0.98] 
+             transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-[#3871C1]/30"
+          >
             Browse more properties
           </Button>
         </div>

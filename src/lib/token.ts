@@ -37,17 +37,17 @@ export function setTokens(access: string, refresh: string) {
   try {
     localStorage.setItem(ACCESS_KEY, access);
     localStorage.setItem(REFRESH_KEY, refresh);
-  } catch {}
+  } catch { }
   listeners.forEach((cb) => cb(_accessToken));
 }
-
 export function clearTokens() {
   _accessToken = null;
   _refreshToken = null;
   try {
     localStorage.removeItem(ACCESS_KEY);
     localStorage.removeItem(REFRESH_KEY);
-  } catch {}
+  } catch { }
+  // notify anyone subscribed (e.g., hooks that refetch /users/me)
   listeners.forEach((cb) => cb(_accessToken));
 }
 

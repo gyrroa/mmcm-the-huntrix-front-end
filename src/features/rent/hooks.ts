@@ -1,7 +1,8 @@
+// features/rent/hooks.ts
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { Rent, CreateRentInput, UpdateRentInput } from "./types";
+import type { Rent, CreateRentInput, UpdateRentInput, PendingRental } from "./types";
 import {
   listRent,
   createRent as apiCreateRent,
@@ -11,6 +12,7 @@ import {
   deleteRent as apiDeleteRent,
   createPendingRental as apiCreatePendingRental,
   confirmRental as apiConfirmRental,
+  listPendingRent,
 } from "./api";
 import { getToken } from "@/lib/token";
 import { rentKeys } from "./keys";
@@ -97,7 +99,7 @@ export function useDeleteRent() {
 /** Pending + confirm flows */
 export function useCreatePendingRental() {
   return useMutation({
-    mutationFn: (params: { rent_id: string; lister_id: string; tenant_id: string }) =>
+    mutationFn: (params: { rent_id: string; lister_id: string; tenant_id: string; message: string }) =>
       apiCreatePendingRental(params),
   });
 }
@@ -107,3 +109,15 @@ export function useConfirmRental() {
     mutationFn: (lister_tenant_id: string) => apiConfirmRental(lister_tenant_id),
   });
 }
+
+/** Pending rentals for a given rent_id (requires auth) */
+export function usePendingRentals(rent_id: string, enabled = true) {
+  return useQuery<PendingRental[]>({
+    queryKey: rentKeys.pending(rent_id),
+    enabled: enabled && !!rent_id && !!getToken(),
+    queryFn: () => listPendingRent(rent_id),
+    staleTime: 15_000,
+    retry: 1,
+  });
+}
+

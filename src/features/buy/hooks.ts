@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { Buy, CreateBuyInput, UpdateBuyInput } from "./types";
+import type { Buy, CreateBuyInput, PendingSale, UpdateBuyInput } from "./types";
 import {
   listBuy,
   createBuy as apiCreateBuy,
@@ -11,6 +11,7 @@ import {
   deleteBuy as apiDeleteBuy,
   createPendingSale as apiCreatePendingSale,
   confirmSale as apiConfirmSale,
+  listPendingBuy,
 } from "./api";
 import { getToken } from "@/lib/token";
 import { buyKeys } from "./keys";
@@ -97,7 +98,7 @@ export function useDeleteBuy() {
 /** Pending + confirm flows */
 export function useCreatePendingSale() {
   return useMutation({
-    mutationFn: (params: { buy_id: string; lister_id: string; buyer_id: string }) =>
+    mutationFn: (params: { buy_id: string; lister_id: string; buyer_id: string; message: string }) =>
       apiCreatePendingSale(params),
   });
 }
@@ -105,5 +106,16 @@ export function useCreatePendingSale() {
 export function useConfirmSale() {
   return useMutation({
     mutationFn: (lister_buyer_id: string) => apiConfirmSale(lister_buyer_id),
+  });
+}
+
+/** Pending offers for a given buy_id (requires auth) */
+export function usePendingSales(buy_id: string, enabled = true) {
+  return useQuery<PendingSale[]>({
+    queryKey: buyKeys.pending(buy_id),
+    enabled: enabled && !!buy_id && !!getToken(),
+    queryFn: () => listPendingBuy(buy_id),
+    staleTime: 15_000,
+    retry: 1,
   });
 }

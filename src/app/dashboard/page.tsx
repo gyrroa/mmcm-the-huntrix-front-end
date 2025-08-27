@@ -1,15 +1,17 @@
 'use client';
 
 import { motion, useReducedMotion } from 'framer-motion';
-import { ReactNode, useMemo } from 'react';
+import { ReactNode, useMemo, useState } from 'react';
 import {
-  Coins, Users2, Award, Diamond, Star, LucideIcon,
+  Coins, Users2, Award, Diamond, LucideIcon,
+  Share2,
 } from 'lucide-react';
 import TransactionsSection from '@/components/dashboardSection/transactionSection';
 import TierProgressCard from '@/components/ui/dashboard/TierProgressCard';
 import PointsHistoryCard from '@/components/ui/dashboard/PointsHistoryCard';
 import { useMe, useVerifyUser } from '@/features/auth/hooks';
 import MyListingsSection from '@/components/dashboardSection/myListingSection';
+import PendingApprovalsSection from '@/components/dashboardSection/pendingApprovalsSection';
 
 // ---------- Types ----------
 
@@ -152,11 +154,14 @@ const TIER_CARD_UI: Record<TierKey, { from: string; to: string; icon: LucideIcon
 // ---------- Main ----------
 const Dashboard: React.FC = () => {
   // Load current user
+  const [copied, setCopied] = useState(false);
   const { data: me, isLoading, error } = useMe(); // redirects to /auth?login on 401/403
   const verify = useVerifyUser();
   const isVerifying = verify.isPending;
   // Call hooks BEFORE any early return
   const breakdown = useMemo(() => {
+    const propertySale = me?.property_sale ?? 0;
+    const propertyRental = me?.property_rental ?? 0;
     const directCount = me?.direct_referrals ?? 0;
     const secondaryCount = me?.secondary_referrals ?? 0;
     const tertiaryCount = me?.tertiary_referrals ?? 0;
@@ -164,27 +169,38 @@ const Dashboard: React.FC = () => {
 
     return [
       {
+        label: 'Property Sale',
+        value: propertySale,
+        hint: `1 pt / ₱ 10,000 sale`,
+      }, {
+        label: 'Property Rental',
+        value: propertyRental,
+        hint: `1 pt / ₱ 10,000 contract`,
+      },
+      {
         label: 'Direct Referrals',
-        value: directCount * RULES.directReferral,
+        value: directCount,
         hint: `+${RULES.directReferral} pts each (${directCount})`,
       },
       {
         label: 'Indirect Referrals (2nd level)',
-        value: secondaryCount * RULES.secondLevelReferral,
+        value: secondaryCount,
         hint: `+${RULES.secondLevelReferral} pts each (${secondaryCount})`,
       },
       {
         label: 'Indirect Referrals (3rd–5th)',
-        value: tertiaryCount * RULES.thirdToFifthReferral,
+        value: tertiaryCount,
         hint: `+${RULES.thirdToFifthReferral} pt each (${tertiaryCount})`,
       },
       {
         label: 'Positive Reviews',
-        value: positiveCount * RULES.positiveReview,
+        value: positiveCount,
         hint: `+${RULES.positiveReview} pt each (${positiveCount})`,
       },
     ];
   }, [
+    me?.property_rental,
+    me?.property_sale,
     me?.direct_referrals,
     me?.secondary_referrals,
     me?.tertiary_referrals,
@@ -236,6 +252,7 @@ const Dashboard: React.FC = () => {
                 <p className="mt-0.5 text-sm sm:text-base text-[#5C7188]">
                   Welcome back, {me.first_name}! Track your points, tier, and transactions
                 </p>
+
               </div>
 
               {/* Right actions */}
@@ -341,11 +358,32 @@ const Dashboard: React.FC = () => {
           />
 
           <StatsCard
-            title="Premium Listings / mo."
-            value={currentTier.perks.listingsPerMonth}
-            subtitle={`Cost: ${RULES.premiumListingCost} pts each`}
-            icon={Star}
+            title="Referral Code"
+            value={
+              <span
+                onClick={() => {
+                  if (me?.referral_code) {
+                    navigator.clipboard.writeText(String(me.referral_code));
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 1500); // hide after 1.5s
+                  }
+                }}
+                className="relative cursor-pointer font-mono font-semibold text-[#3871C1]"
+              >
+                <code className="px-2 py-1 rounded-lg bg-[#F5F8FF] text-[#3871C1] font-mono font-semibold">
+                  {me?.referral_code ?? "—"}
+                </code>
+                {copied && (
+                  <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs bg-[#3871C1] text-white px-2 py-1 rounded shadow">
+                    Copied!
+                  </span>
+                )}
+              </span>
+            }
+            subtitle="Share with friends to grow your network"
+            icon={Share2}
           />
+
         </div>
 
         {/* Chart + Tier Progress */}
@@ -370,7 +408,7 @@ const Dashboard: React.FC = () => {
           />
         </motion.div>
       </section>
-
+      <PendingApprovalsSection />
       <MyListingsSection />
       <TransactionsSection />
     </div>

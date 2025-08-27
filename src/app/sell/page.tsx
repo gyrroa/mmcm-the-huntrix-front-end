@@ -51,6 +51,7 @@ type BasePayload = {
     name: string;
     price: number;
     address: string;
+    freq: string;
     bed: number;
     bath: number;
     size: number;
@@ -61,6 +62,7 @@ type BasePayload = {
     tags: string[];
     images: File[];
     videos: File[];
+    property_score: number;
 };
 
 type RentPayload = BasePayload & { lease_term: number };
@@ -108,7 +110,7 @@ const SellPage: React.FC = () => {
         title: '',
         address: '',
         price: '',
-        frequency: 'monthly',
+        freq: 'monthly',
         size: '',
         bed: '',
         bath: '',
@@ -153,12 +155,10 @@ const SellPage: React.FC = () => {
 
     // Property Info points (BUY vs RENT)
     let propertyPts = 0;
-    let propertyMax = 0;
 
     if (isBuy) {
         // BUY (Property Information – 30 pts)
         const W = { title: 2, address: 4, price: 4, saleType: 2, size: 6, bed: 4, bath: 3, desc: 5 };
-        propertyMax = Object.values(W).reduce((a, b) => a + b, 0);
 
         // NOTE: sale type not in your form; keep 0 for now (add a dropdown later to grant W.saleType)
         const saleTypePresent = false;
@@ -174,7 +174,6 @@ const SellPage: React.FC = () => {
     } else {
         // RENT (Property Information – 35 pts)
         const W = { title: 2, address: 4, price: 5, lease: 3, size: 6, bed: 5, bath: 3, desc: 7 };
-        propertyMax = Object.values(W).reduce((a, b) => a + b, 0);
 
         propertyPts += has(formData.title) ? W.title : 0;
         propertyPts += has(formData.address) ? W.address : 0;
@@ -192,7 +191,6 @@ const SellPage: React.FC = () => {
     const amenitiesPts = amenitiesCount >= 5 ? 6 : amenitiesCount > 0 ? 3 : 0;
     const tagsPts = tagsCount >= 5 ? 4 : tagsCount > 0 ? 2 : 0;
     const atPts = amenitiesPts + tagsPts;
-    const atMax = 10;
 
     // Media Quality (30 pts): Photos 10, Video 20
     const photosFull = formData.images.length >= PHOTOS_TARGET;
@@ -207,16 +205,11 @@ const SellPage: React.FC = () => {
     const hasAnyVideo = formData.videos.length > 0;
     const videosPts = hasAnyVideo ? 10 : 0; // TODO: upgrade to 20 if ≥30s
     const mediaPts = photosPts + videosPts;
-    const mediaMax = 30;
 
     // Extra section: BUY = Essential Documents (30 pts) / RENT = Reviews & Ratings (25 pts)
-    let extraLabel = '';
     let extraPts = 0;
-    let extraMax = 0;
 
     if (isBuy) {
-        extraLabel = 'Essential Documents';
-        extraMax = 30;
         // Map your checklist booleans to spec weights
         const docW = { titleDeed: 4.3, deedOfSale: 4.3, taxDec: 4.3, taxReceipts: 4.3, encumbranceCert: 4.3, birCar: 4.3, lgu: 4.2 };
         extraPts += checklist.titleDeed ? docW.titleDeed : 0;
@@ -227,25 +220,17 @@ const SellPage: React.FC = () => {
         extraPts += checklist.birCar ? docW.birCar : 0;
         extraPts += checklist.transferTaxClearance ? docW.lgu : 0;
     } else {
-        extraLabel = 'Reviews & Ratings';
-        extraMax = 25;
         // On create form, reviews data is not available; keep 0 (scored after publish)
         extraPts = 0;
     }
 
     // Totals to 100 per spec
     const total = propertyPts + atPts + mediaPts + extraPts;
-    const qualityScore = Math.round(total);
-    const pct = Math.min(100, Math.max(0, qualityScore));
+    const qualityScore = Math.min(100, Math.max(0, Math.round(total)));
+    const pct = qualityScore;
 
     // Expose for UI
-    const sections = {
-        property: { pts: propertyPts, max: propertyMax },
-        at: { pts: atPts, max: atMax },
-        media: { pts: mediaPts, max: mediaMax, details: { photosPts, videosPts, PHOTOS_TARGET } },
-        extra: { label: extraLabel, pts: extraPts, max: extraMax },
-    };
-    const docsPts = isBuy ? (sections ? sections.extra.pts : extraPts) : 0;
+    const docsPts = isBuy ? extraPts : 0;
     const [isMapOpen, setIsMapOpen] = useState(false);
     const [scoreInfoOpen, setScoreInfoOpen] = useState(false);
 
@@ -328,7 +313,6 @@ const SellPage: React.FC = () => {
     };
 
     // Builds payload once user confirms
-    // Builds payload (typed)
     const toBasePayload = (): BasePayload => {
         const priceNumeric = Number(formData.price.replace(/[^\d]/g, "")) || 0;
         const sizeNumeric = Number(String(formData.size).replace(/[^\d.]/g, "")) || 0;
@@ -339,16 +323,18 @@ const SellPage: React.FC = () => {
             name: formData.title.trim(),
             price: priceNumeric,
             address: formData.address.trim(),
+            freq: formData.freq,
             bed: bedNum,
             bath: bathNum,
             size: sizeNumeric,
-            description: formData.description?.trim() || null,
+            description: formData.description?.trim() || "",  // send "" instead of null
             latitude: formData.lat ?? null,
             longitude: formData.lng ?? null,
             amenities: formData.amenities,
             tags: formData.tags,
             images: formData.images,
             videos: formData.videos,
+            property_score: qualityScore,
         };
     };
 
@@ -371,7 +357,7 @@ const SellPage: React.FC = () => {
             title: '',
             address: '',
             price: '',
-            frequency: 'monthly',
+            freq: 'monthly',
             size: '',
             bed: '',
             bath: '',
@@ -485,9 +471,10 @@ const SellPage: React.FC = () => {
                 <form onSubmit={handleSubmit} className="flex flex-col xl:flex-row gap-6 animate-fadeIn">
                     {/* Left column */}
                     <div className="flex-1 flex flex-col gap-6">
-                        {/* Listing Type (SEGMENTED) */}
-                        <div className="w-full">
-                            <div className="bg-white border border-[#E3ECF9] rounded-2xl px-3 py-2 shadow-sm hover:shadow-md transition-shadow duration-200 w-fit mx-auto">
+                        {/* Property Info */}
+                        <Card>
+                            <div className="flex justify-between">
+                                <SectionTitle icon={<FaMapMarkerAlt />} title="Property Information" />
                                 <div className="inline-flex items-center gap-1 rounded-[14px]">
                                     {/* For Rent */}
                                     <button
@@ -516,13 +503,8 @@ const SellPage: React.FC = () => {
                                     </button>
                                 </div>
                             </div>
-                        </div>
-
-                        {/* Property Info */}
-                        <Card>
-                            <SectionTitle icon={<FaMapMarkerAlt />} title="Property Information" />
-
                             <div className="mt-4 space-y-6">
+
                                 {/* Row 1: Title + Address */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                     <Field
@@ -581,9 +563,9 @@ const SellPage: React.FC = () => {
                                     </div>
                                 </div>
 
-                                {/* Row 2: Price (+ Frequency if rent) + Lease Term (rent only) */}
+                                {/* Row 2: Price (+ freq if rent) + Lease Term (rent only) */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                    {/* Price + Frequency */}
+                                    {/* Price + freq */}
                                     <div className="flex flex-col gap-1">
                                         <label className="text-sm font-medium text-[#001619B2]">Price</label>
 
@@ -607,11 +589,11 @@ const SellPage: React.FC = () => {
                                             {formData.type === 'rent' && (
                                                 <div className="relative w-[180px]">
                                                     <select
-                                                        id="frequency"
-                                                        name="frequency"
-                                                        value={formData.frequency}
+                                                        id="freq"
+                                                        name="freq"
+                                                        value={formData.freq}
                                                         onChange={(e) =>
-                                                            setFormData((prev) => ({ ...prev, frequency: e.target.value }))
+                                                            setFormData((prev) => ({ ...prev, freq: e.target.value }))
                                                         }
                                                         className="font-medium w-full border border-[#D2E4FF] rounded-xl text-sm px-3 pr-9 py-3 text-[#002353] focus:ring-2 focus:ring-[#3871C1] focus:outline-none transition appearance-none bg-white"
                                                     >
@@ -1234,7 +1216,7 @@ const SellPage: React.FC = () => {
                                         value={
                                             formData.price
                                                 ? `₱ ${formData.price}${formData.type === 'rent'
-                                                    ? ` / ${freqLabel(formData.frequency)}`
+                                                    ? ` / ${freqLabel(formData.freq)}`
                                                     : ''
                                                 }`
                                                 : '—'
@@ -1358,7 +1340,7 @@ const SellPage: React.FC = () => {
                                         value={
                                             formData.price
                                                 ? `₱ ${formData.price}${formData.type === 'rent'
-                                                    ? ` / ${freqLabel(formData.frequency)}`
+                                                    ? ` / ${freqLabel(formData.freq)}`
                                                     : ''
                                                 }`
                                                 : '—'
@@ -1589,7 +1571,7 @@ const SellPage: React.FC = () => {
                         title: formData.title,
                         address: formData.address,
                         price: formData.price,
-                        frequency: formData.frequency,
+                        freq: formData.freq,
                         size: formData.size,
                         bed: formData.bed,
                         bath: formData.bath,
@@ -1709,7 +1691,7 @@ const ConfirmationDialog: React.FC<{
         title: string;
         address: string;
         price: string;
-        frequency: string;
+        freq: string;
         size: string;
         bed: string;
         bath: string;
@@ -1734,7 +1716,7 @@ const ConfirmationDialog: React.FC<{
                     <Row name="Type" value={data.type === 'rent' ? 'For Rent' : 'For Sale'} />
                     <Row name="Title" value={data.title || '—'} />
                     <Row name="Address" value={data.address || '—'} />
-                    <Row name="Price" value={data.price ? `₱ ${data.price}${data.type === 'rent' ? ` / ${freqLabel(data.frequency)}` : ''}` : '—'} />
+                    <Row name="Price" value={data.price ? `₱ ${data.price}${data.type === 'rent' ? ` / ${freqLabel(data.freq)}` : ''}` : '—'} />
                     <Row name="Size" value={data.size || '—'} />
                     <Row name="Bedrooms" value={data.bed || '—'} />
                     <Row name="Bathrooms" value={data.bath || '—'} />

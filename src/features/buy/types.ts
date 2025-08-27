@@ -16,10 +16,12 @@ export type Buy = {
   name: string;
   price: number;            // total price
   address: string;
+  freq: string;
 
   bed: number;
   bath: number;
   size: string;
+  property_score: number;
 
   is_popular?: boolean;
   is_available?: boolean;
@@ -49,6 +51,7 @@ export type Buy = {
   listed_at?: string;       // ISO datetime (server field)
   created_at?: string;      // legacy
   updated_at?: string;      // legacy
+  listed_by?: string;
 };
 
 /** Payload to create a new buy listing */
@@ -57,10 +60,11 @@ export type CreateBuyInput = {
   name: string;
   price: number;
   address: string;
+  freq: string;
   bed: number;
   bath: number;
   size: number | string;
-
+  property_score: number;
   // optional
   description?: string | null;
   lease_term?: number | null; // parity; may be ignored by API
@@ -90,3 +94,15 @@ export type UpdateBuyInput = Partial<Omit<CreateBuyInput, "images" | "documents"
   remove_images?: string[];
   remove_documents?: string[];
 };
+
+export type PendingSale = {
+  id: string;
+  buy_id: string;
+  lister_id: string;
+  buyer_id: string;
+  buyer_name: string;
+  message: string;
+  status?: 'Pending' | 'Approved' | 'Rejected' | string;
+  created_at?: string;
+  updated_at?: string;
+} & Record<string, unknown>;

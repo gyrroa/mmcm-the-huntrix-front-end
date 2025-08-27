@@ -200,6 +200,7 @@ export default function BrowsePropertiesPage() {
                                         : property.images[0]?.url)
                                     : undefined) ?? fallbackImage
                             }
+                            freq={property.freq}
                             name={property.name}
                             price={property.price}
                             // derive popularity for the card (if the component supports it)
@@ -209,6 +210,8 @@ export default function BrowsePropertiesPage() {
                             bath={property.bath}
                             size={property.size}
                             listingType={listingType}
+                            listedBy={property.lister_name ?? undefined}
+                            slug={property.slug}
                         />
                     ))}
                 </div>

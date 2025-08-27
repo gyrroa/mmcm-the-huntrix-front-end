@@ -12,6 +12,9 @@ import { Buy } from '@/features/buy/types';
 import { useRentList } from '@/features/rent/hooks';
 import { useBuyList } from '@/features/buy/hooks';
 import { useMe } from '@/features/auth/hooks';
+import SendOfferModal from '@/components/ui/home/SendOffer';
+import { UserIcon } from 'lucide-react';
+import PropertyCard from '@/components/ui/home/PropertyCard';
 
 type ListingType = 'rent' | 'buy';
 
@@ -55,6 +58,7 @@ export default function PropertyDetailsPage() {
   // --- STATE/REFS: keep all hooks before any conditional return ---
   const touchStartXRef = useRef<number | null>(null);
   const [showVisitModal, setShowVisitModal] = useState(false);
+  const [showOfferModal, setShowOfferModal] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState<number | null>(null);
 
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -176,22 +180,24 @@ export default function PropertyDetailsPage() {
 
   // --- NORMALIZED FIELDS ---
   const images = pickImages(rawProperty);
-  imagesCountRef.current = images.length; // keep ref in sync (safe to do in render)
+  const hasRealImages = images.length > 0;
+  const gallerySources = hasRealImages ? images : ['/placeholder.png'];
+
+  imagesCountRef.current = hasRealImages ? images.length : 0; // keep ref in sync
   const isPopular = pickIsPopular(rawProperty);
   const documents = pickDocuments(rawProperty);
   const isRent = listingType === 'rent';
 
   // --- NON-HOOK HELPERS ---
-  const openImageModal = (index: number) => setActiveImageIndex(index);
+  const openImageModal = (index: number) => {
+    if (!hasRealImages) return; // don't open when only placeholder
+    setActiveImageIndex(index);
+  };
   const closeModal = () => setActiveImageIndex(null);
   const prevImage = () =>
     setActiveImageIndex((prev) => (prev! > 0 ? prev! - 1 : images.length - 1));
   const nextImage = () =>
     setActiveImageIndex((prev) => (prev! < images.length - 1 ? prev! + 1 : 0));
-
-  const handleClick = (item: Rent | Buy) => {
-    router.push(`/${listingType}/${item.slug}`);
-  };
 
   const formatPricePH = (value: number | string): string => {
     const n = typeof value === 'number' ? value : Number(String(value).replace(/[^\d.-]/g, ''));
@@ -241,54 +247,68 @@ export default function PropertyDetailsPage() {
       {/* Price & Address */}
       <p className="text-2xl font-semibold text-[#3871C1] mb-1">
         ₱{formatPricePH(rawProperty.price)}
-        {isRent && <span className="text-base font-normal text-[#002353]/60"> /month</span>}
+        {isRent && <span className="text-base font-normal text-[#002353]/60"> / {rawProperty.freq}</span>}
       </p>
       <p className="text-sm text-[#5C7188] mb-6">{rawProperty.address}</p>
-
+      {rawProperty.lister_name && (
+        <div className="flex items-center gap-2 text-xs sm:text-sm text-[#5C7188] mb-6">
+          <UserIcon className="h-4 w-4 text-[#3871C1]" />
+          <span>
+            Listed by <span className="font-semibold text-[#002353]">{rawProperty.lister_name}</span>
+          </span>
+        </div>
+      )}
       {/* Image Gallery */}
       <div className="mb-10">
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-          {(images.length ? images : ['/placeholder.png'])
-            .slice(0, 3)
-            .map((src, i, arr) => {
-              const showOverlay = i === arr.length - 1 && images.length > arr.length;
-              return (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => openImageModal(i)}
-                  className="group relative aspect-[4/3] rounded-xl overflow-hidden shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3871C1]"
-                  aria-label={`Open photo ${i + 1} of ${images.length}`}
-                >
-                  <div className={`absolute inset-0 ${loadedMap[i] ? '' : 'bg-gray-200 animate-pulse'}`} />
-                  <Image
-                    src={src}
-                    alt={`${rawProperty.name} photo ${i + 1}`}
-                    fill
-                    sizes="(min-width:1280px) 33vw, (min-width:768px) 33vw, 50vw"
-                    className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-                    onLoadingComplete={() => markLoaded(i)}
-                    loading={i < 3 ? 'eager' : 'lazy'}
-                    draggable={false}
-                  />
-                  {i === 0 && images.length > 0 && (
-                    <span className="absolute left-2 top-2 text-xs font-medium bg-black/50 text-white px-2 py-1 rounded">
-                      {images.length} {images.length === 1 ? 'photo' : 'photos'}
+          {gallerySources.slice(0, 3).map((src, i, arr) => {
+            const showOverlay = i === arr.length - 1 && images.length > arr.length;
+            const clickable = hasRealImages;
+
+            return (
+              <button
+                key={i}
+                type="button"
+                onClick={clickable ? () => openImageModal(i) : undefined}
+                disabled={!clickable}
+                aria-disabled={!clickable}
+                aria-label={
+                  clickable
+                    ? `Open photo ${i + 1} of ${images.length}`
+                    : 'No photos available'
+                }
+                className={`group relative aspect-[4/3] rounded-xl overflow-hidden shadow focus:outline-none
+            ${clickable ? 'focus-visible:ring-2 focus-visible:ring-[#3871C1] cursor-pointer'
+                    : 'cursor-default'}`}
+              >
+                <div className={`absolute inset-0 ${loadedMap[i] ? '' : 'bg-gray-200 animate-pulse'}`} />
+                <Image
+                  src={src}
+                  alt={`${rawProperty.name} photo ${i + 1}`}
+                  fill
+                  sizes="(min-width:1280px) 33vw, (min-width:768px) 33vw, 50vw"
+                  className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                  onLoadingComplete={() => markLoaded(i)}
+                  loading={i < 3 ? 'eager' : 'lazy'}
+                  draggable={false}
+                />
+                {i === 0 && images.length > 0 && (
+                  <span className="absolute left-2 top-2 text-xs font-medium bg-black/50 text-white px-2 py-1 rounded">
+                    {images.length} {images.length === 1 ? 'photo' : 'photos'}
+                  </span>
+                )}
+                {showOverlay && (
+                  <div className="absolute inset-0 bg-black/40 text-white flex items-center justify-center">
+                    <span className="text-sm sm:text-base font-medium">
+                      View all photos (+{images.length - arr.length})
                     </span>
-                  )}
-                  {showOverlay && (
-                    <div className="absolute inset-0 bg-black/40 text-white flex items-center justify-center">
-                      <span className="text-sm sm:text-base font-medium">
-                        View all photos (+{images.length - arr.length})
-                      </span>
-                    </div>
-                  )}
-                </button>
-              );
-            })}
+                  </div>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
-
       {/* Description */}
       {rawProperty.description && (
         <div className="bg-white rounded-xl p-6 shadow mb-10">
@@ -357,10 +377,12 @@ export default function PropertyDetailsPage() {
 
       {/* Reviews */}
       <ReviewSection
+        propertyId={rawProperty.id}
         slug={rawProperty.slug}
         isRent={isRent}
         propertyName={rawProperty.name}
         currentUserName={currentUserName}
+        currentUserId={me?.id}
       />
 
       {/* Similar Properties */}
@@ -372,32 +394,21 @@ export default function PropertyDetailsPage() {
               .filter((p) => p.slug !== rawProperty.slug)
               .slice(0, 3)
               .map((item, index) => (
-                <motion.div
-                  key={index}
-                  whileHover={{ scale: 1.02 }}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="bg-white rounded-xl shadow overflow-hidden transition cursor-pointer"
-                  onClick={() => handleClick(item)}
-                >
-                  <div className="relative aspect-video">
-                    <Image
-                      src={pickImages(item)[0] ?? '/placeholder.png'}
-                      alt={item.name}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-semibold text-[#002353]">{item.name}</h3>
-                    <p className="text-sm text-[#5C7188] mb-1">{item.address}</p>
-                    <p className="text-[#3871C1] font-medium text-sm">
-                      ₱{formatPricePH(item.price)}
-                      {isRent && <span className="text-xs font-normal"> /month</span>}
-                    </p>
-                  </div>
-                </motion.div>
+                <PropertyCard
+                  key={item.slug ?? index}
+                  imageSrc={pickImages(item)[0] ?? "/logo.svg"}
+                  price={item.price}
+                  name={item.name}
+                  isPopular={pickIsPopular(item)}
+                  address={item.address}
+                  freq={listingType === "rent" ? (item as Rent).freq : ""}
+                  bed={item.bed}
+                  bath={item.bath}
+                  size={String(item.size)}
+                  listingType={listingType}
+                  listedBy={item.listed_by}
+                  slug={item.slug}
+                />
               ))}
           </div>
         </div>
@@ -410,48 +421,69 @@ export default function PropertyDetailsPage() {
         transition={{ duration: 0.4, delay: 0.5 }}
         className="fixed bottom-8 left-0 right-0 z-50 px-6"
       >
-        <div className="bg-white/50 backdrop-blur-sm shadow rounded-2xl px-6 py-5 max-w-4xl mx-auto border border-gray-200">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-center sm:text-left">
-            <div>
-              <h2 className="text-lg sm:text-xl font-semibold text-[#002353]">Interested in this property?</h2>
-              <p className="text-sm text-[#5C7188]">
-                Send an offer or schedule a visit — we’re ready to assist you.
-              </p>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
-              {/* Send Offer (auth-gated) */}
-              <Button
-                onClick={() => {
-                  if (me?.id) {
-                    router.push(`/offers/new?property=${rawProperty.slug}`);
-                  } else {
-                    router.push(`/auth?login&redirect=/${listingType}/${rawProperty.slug}?action=offer`);
-                  }
-                }}
-                title={me?.id ? undefined : 'Sign in required'}
-                aria-label="Send an Offer"
+        {rawProperty.lister_id === me?.id ? (
+          <div className="bg-white/50 backdrop-blur-sm shadow rounded-2xl px-6 py-5 w-fit mx-auto border border-gray-200 flex justify-center">
+            <button
+              onClick={() => router.push("/dashboard#myListingsSection")}
+              className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-[#5AA6FF] via-[#3871C1] to-[#2D3E8B] text-white font-semibold shadow-md hover:shadow-lg transition"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
               >
-                Send an Offer
-              </Button>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7h18M3 12h18M3 17h18" />
+              </svg>
+              Go to My Listings
+            </button>
+          </div>
+        ) : (
+          <div className="bg-white/50 backdrop-blur-sm shadow rounded-2xl px-6 py-5 max-w-4xl mx-auto border border-gray-200">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-center sm:text-left">
+              <div>
+                <h2 className="text-lg sm:text-xl font-semibold text-[#002353]">Interested in this property?</h2>
+                <p className="text-sm text-[#5C7188]">
+                  Send an offer or schedule a visit — we’re ready to assist you.
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
+                {/* Send Offer (auth-gated) */}
+                <Button
+                  onClick={() => {
+                    if (me?.id) {
+                      setShowOfferModal(true);
+                    } else {
+                      router.push(`/auth?login&redirect=/${listingType}/${rawProperty.slug}?action=offer`);
+                    }
+                  }}
+                  title={me?.id ? undefined : 'Sign in required'}
+                  aria-label="Send an Offer"
+                  className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-[#5AA6FF] via-[#3871C1] to-[#2D3E8B] text-white font-semibold shadow-md hover:shadow-lg transition"
+                >
+                  Purchase
+                </Button>
 
-              {/* Schedule a Visit (auth-gated) */}
-              <Button
-                variant="quaternary"
-                onClick={() => {
-                  if (me?.id) {
-                    setShowVisitModal(true);
-                  } else {
-                    router.push(`/auth?login&redirect=/${listingType}/${rawProperty.slug}?action=visit`);
-                  }
-                }}
-                title={me?.id ? undefined : 'Sign in required'}
-                aria-label="Schedule a Visit"
-              >
-                Schedule a Visit
-              </Button>
+                {/* Schedule a Visit (auth-gated) */}
+                <Button
+                  variant="quaternary"
+                  onClick={() => {
+                    if (me?.id) {
+                      setShowVisitModal(true);
+                    } else {
+                      router.push(`/auth?login&redirect=/${listingType}/${rawProperty.slug}?action=visit`);
+                    }
+                  }}
+                  title={me?.id ? undefined : 'Sign in required'}
+                  aria-label="Schedule a Visit"
+                >
+                  Schedule a Visit
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </motion.div>
 
       <ScheduleVisitModal
@@ -460,7 +492,6 @@ export default function PropertyDetailsPage() {
         propertyName={rawProperty.name}
       />
 
-      {/* Image Modal */}
       {/* Image Modal */}
       {activeImageIndex !== null && (
         <div
@@ -710,6 +741,21 @@ export default function PropertyDetailsPage() {
           </motion.div>
         </div>
       )}
+      <SendOfferModal
+        isOpen={showOfferModal}
+        onClose={() => setShowOfferModal(false)}
+        property={{
+          listingType: listingType,
+          name: rawProperty.name,
+          rentId: rawProperty.id,
+          freq: rawProperty.freq,
+          listerId: rawProperty.lister_id ?? "",
+          tenantId: me?.id ?? "",
+          address: rawProperty.address,
+          price: rawProperty.price,
+          image: hasRealImages ? images[0] : "/logo.svg", // <-- fallback
+        }}
+      />
     </motion.div>
   );
 }

@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/dashboard/Badge';
 import { Building2, Home, Key, MapPin, Calendar, LucideIcon } from 'lucide-react';
 import { useMyBuyListings } from '@/features/buy/hooks';
 import { useMyRentListings } from '@/features/rent/hooks';
-// import ListingEditModal from '../ui/dashboard/ListingEditModal';
+import ListingEditModal from '../ui/dashboard/ListingEditModal';
 
 
 type ListingType = 'buy' | 'rent';
@@ -219,13 +219,13 @@ const MyListingsSection: React.FC<Props> = ({
     const isLoading = loadingBuy || loadingRent;
     const isError = errorBuy || errorRent;
 
-    // const [editOpen, setEditOpen] = useState(false);
-    // const [selected, setSelected] = useState<ListingRow | null>(null);
+    const [editOpen, setEditOpen] = useState(false);
+    const [selected, setSelected] = useState<ListingRow | null>(null);
 
-    // const openEditor = (item: ListingRow) => {
-    //     setSelected(item);
-    //     setEditOpen(true);
-    // };
+    const openEditor = (item: ListingRow) => {
+        setSelected(item);
+        setEditOpen(true);
+    };
 
     return (
         <motion.section
@@ -328,6 +328,7 @@ const MyListingsSection: React.FC<Props> = ({
                                         key={item.id}
                                         className="text-left border border-[#E8EEF8] bg-white rounded-2xl overflow-hidden hover:shadow-[0_10px_30px_rgba(0,0,0,0.06)] transition-all focus:outline-none focus:ring-2 focus:ring-[#3871C1]"
                                         aria-label={`Edit ${item.name}`}
+                                        onClick={() => openEditor(item)}
                                     >
                                         {/* Image */}
                                         <div className="relative w-full h-40 bg-[#F5F8FF]">
@@ -439,13 +440,13 @@ const MyListingsSection: React.FC<Props> = ({
                 </Card>
             </div>
 
-            {/* ⬇️ Modal */}
-            {/* <ListingEditModal
+            {/* Modal */}
+            <ListingEditModal
                 open={editOpen}
                 onOpenChange={setEditOpen}
                 listing={selected}
             // Optional: after successful edit/delete, you could close + rely on hooks' invalidations
-            /> */}
+            />
         </motion.section>
     );
 };

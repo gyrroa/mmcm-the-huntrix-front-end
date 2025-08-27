@@ -3,6 +3,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import Button from '@/components/button';
 import { useRouter } from 'next/navigation';
+import { usePropertyReviews, useCreateReview } from '@/features/reviews/hooks';
+import type { Review as ApiReview } from '@/features/reviews/types';
+import { ApiError, extractFastApiMessage } from '@/lib/http';
 
 // ---------- Types ----------
 type Review = {
@@ -11,34 +14,19 @@ type Review = {
   rating: number; // 1..5
   comment: string;
   createdAt: string; // ISO
+  isPositive: boolean;
 };
 
 type Props = {
-  slug: string;
+  slug: string;               // still used for headings/keys if you want
   isRent: boolean;
   propertyName: string;
+  propertyId: string;         // NEW: backend property_id (rent_property_id)
   currentUserName?: string | null;
+  currentUserId?: string | null; // NEW: required for create
   onLogin?: () => void;
   loginHref?: string;
 };
-
-// ---------- Local storage helpers ----------
-const REVIEWS_KEY = (slug: string) => `reviews:${slug}`;
-
-function loadReviews(slug: string): Review[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = localStorage.getItem(REVIEWS_KEY(slug));
-    return raw ? (JSON.parse(raw) as Review[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveReviews(slug: string, reviews: Review[]) {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(REVIEWS_KEY(slug), JSON.stringify(reviews));
-}
 
 // ---------- Stars ----------
 const Stars: React.FC<{
@@ -94,16 +82,28 @@ const Stars: React.FC<{
 
 // ---------- ReviewSection ----------
 const ReviewSection: React.FC<Props> = ({
-  slug,
   isRent,
   propertyName,
+  propertyId,
   currentUserName,
+  currentUserId,
+  onLogin,
+  loginHref,
 }) => {
   const router = useRouter();
 
   const MAX_LEN = 600;
 
-  const [reviews, setReviews] = useState<Review[]>([]);
+  // fetch from API
+  const { data: apiReviews, isLoading, isError, refetch } = usePropertyReviews(propertyId, {
+    skip: 0,
+    limit: 100,
+  });
+  console.log(propertyId)
+
+  // mutation for create
+  const { mutateAsync: createReview, isPending: isCreating } = useCreateReview();
+
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -115,11 +115,18 @@ const ReviewSection: React.FC<Props> = ({
 
   const isAuthed = !!(currentUserName && currentUserName.trim().length > 0);
 
-  useEffect(() => {
-    // Optional: skip side effect when not used
-    if (!isRent) return;
-    setReviews(loadReviews(slug));
-  }, [slug, isRent]);
+  // map API -> UI
+  const reviews: Review[] = useMemo(() => {
+    const list = (apiReviews ?? []) as ApiReview[];
+    return list.map((r) => ({
+      id: r.id,
+      name: r.user_name || 'Anon',
+      rating: r.rating,
+      comment: r.comment,
+      createdAt: r.created_at,
+      isPositive: !!r.is_positive,
+    }));
+  }, [apiReviews]);
 
   const avg = useMemo(
     () => (reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0),
@@ -149,7 +156,7 @@ const ReviewSection: React.FC<Props> = ({
   const start = (page - 1) * PAGE_SIZE;
   const visible = sorted.slice(start, start + PAGE_SIZE);
 
-  const onSubmit = (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -157,23 +164,27 @@ const ReviewSection: React.FC<Props> = ({
     if (rating < 1 || rating > 5) return setError('Please select a rating.');
     if (!comment.trim()) return setError('Please write a short comment.');
 
-    const newReview: Review = {
-      id: crypto?.randomUUID?.() ?? String(Date.now()),
-      name: currentUserName!.trim(),
-      rating,
-      comment: comment.trim(),
-      createdAt: new Date().toISOString(),
-    };
+    try {
+      await createReview({
+        user_id: currentUserId as string,
+        rating,
+        comment: comment.trim(),
+        rent_property_id: propertyId,
+      });
 
-    const next = [newReview, ...reviews];
-    setReviews(next);
-    saveReviews(slug, next);
-    setRating(0);
-    setComment('');
-    setPage(1);
+      // reset local form; list invalidation is handled in the hook
+      setRating(0);
+      setComment('');
+      setPage(1);
+    } catch (err: unknown) {
+      const msg =
+        (err instanceof ApiError && (extractFastApiMessage(err.body) || err.message)) ||
+        'Failed to submit review.';
+      setError(msg);
+    }
   };
 
-  const disabledSubmit = rating < 1 || !comment.trim();
+  const disabledSubmit = isCreating || rating < 1 || !comment.trim();
 
   if (!isRent) return null;
 
@@ -233,7 +244,11 @@ const ReviewSection: React.FC<Props> = ({
                 You need an account to rate and share your renting experience.
               </p>
               <div className="mt-4 flex justify-center">
-                <Button type="button" onClick={() => router.push('/auth?login')} aria-label="Log in to review">
+                <Button
+                  type="button"
+                  onClick={() => (onLogin ? onLogin() : router.push(loginHref || '/auth?login'))}
+                  aria-label="Log in to review"
+                >
                   Log in
                 </Button>
               </div>
@@ -271,9 +286,8 @@ const ReviewSection: React.FC<Props> = ({
                 maxLength={MAX_LEN}
                 aria-describedby="char-left"
                 aria-invalid={!!error}
-                className={`w-full rounded-lg bg-white px-3 py-2 outline-none h-[410px] resize-y focus:ring-2 focus:ring-[#3871C1] ${
-                  error ? 'border border-red-400' : 'border border-[#AFC4DD]'
-                } text-[#0F274A] placeholder-[#8FA2BC]`}
+                className={`w-full rounded-lg bg-white px-3 py-2 outline-none h-[410px] resize-y focus:ring-2 focus:ring-[#3871C1] ${error ? 'border border-red-400' : 'border border-[#AFC4DD]'
+                  } text-[#0F274A] placeholder-[#8FA2BC]`}
                 placeholder="Share your renting experience…"
                 required
               />
@@ -287,7 +301,7 @@ const ReviewSection: React.FC<Props> = ({
 
             <div className="mt-5 flex flex-col items-center justify-center gap-3">
               <Button type="submit" disabled={disabledSubmit}>
-                Submit Review
+                {isCreating ? 'Submitting…' : 'Submit Review'}
               </Button>
               <span className="text-xs text-[#5C7188]">
                 By submitting, you agree to our community guidelines.
@@ -329,15 +343,36 @@ const ReviewSection: React.FC<Props> = ({
           {/* reviews list */}
           <div className="bg-white border border-[#D6E3F5] rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.04)] p-0 overflow-hidden">
             <div className="px-5 py-4 border-b border-[#D6E3F5]">
-              <h3 className="text-sm font-semibold text-[#0F274A]">Recent Reviews</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-[#0F274A]">Recent Reviews</h3>
+                <span
+                  className="px-2 py-0.5 rounded-full text-[11px] border border-[#CFE0FF] text-[#3871C1] bg-[#F0F6FF]"
+                  title="These sentiment badges are AI-generated heuristics"
+                >
+                  AI-generated sentiment
+                </span>
+              </div>
               <p className="text-xs text-[#5C7188]">
-                Page {page} of {totalPages}
+                Page {Math.min(page, totalPages)} of {totalPages}
               </p>
             </div>
 
             <div className="flex flex-col h-[360px]">
               <div className="flex-1 overflow-y-auto p-4 space-y-3" aria-live="polite">
-                {reviews.length === 0 ? (
+                {isLoading ? (
+                  // simple skeletons
+                  Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="animate-pulse bg-white border border-[#D6E3F5] rounded-xl p-4">
+                      <div className="h-4 bg-[#E7EEF8] rounded w-1/3 mb-2" />
+                      <div className="h-3 bg-[#E7EEF8] rounded w-2/3 mb-1" />
+                      <div className="h-3 bg-[#E7EEF8] rounded w-full" />
+                    </div>
+                  ))
+                ) : isError ? (
+                  <div className="bg-white border border-red-200 rounded-xl p-6 text-center text-sm text-red-700">
+                    Couldn’t load reviews. <button onClick={() => refetch()} className="underline">Retry</button>
+                  </div>
+                ) : reviews.length === 0 ? (
                   <div className="bg-white border border-[#D6E3F5] rounded-xl p-6 text-center text-sm text-[#3A4B63]">
                     No reviews yet. Be the first to share your renting experience!
                   </div>
@@ -366,10 +401,23 @@ const ReviewSection: React.FC<Props> = ({
                             </div>
                           </div>
                         </div>
-                        <span className="px-2 py-0.5 rounded-full text-xs border border-[#D6E3F5] text-[#3A4B63]">
-                          {r.rating}★
-                        </span>
+
+                        {/* Right-side badges */}
+                        <div className="flex items-center gap-2">
+                          {r.isPositive ? (
+                            <span
+                              className="px-2 py-0.5 rounded-full text-[11px] border border-emerald-200 text-emerald-700 bg-emerald-50"
+                              title="This review was marked positive"
+                            >
+                              Positive
+                            </span>
+                          ) : null}
+                          <span className="px-2 py-0.5 rounded-full text-xs border border-[#D6E3F5] text-[#3A4B63]">
+                            {r.rating}★
+                          </span>
+                        </div>
                       </div>
+
                       <p className="mt-2 text-sm leading-relaxed text-[#2A3D52] break-words whitespace-pre-wrap">
                         {r.comment}
                       </p>
@@ -400,11 +448,10 @@ const ReviewSection: React.FC<Props> = ({
                         key={n}
                         type="button"
                         onClick={() => setPage(n)}
-                        className={`h-8 min-w-8 px-2 rounded-full border ${
-                          n === page
-                            ? 'border-[#3871C1] text-[#0F274A] font-medium'
-                            : 'border-[#CFE0FF] text-[#3871C1] hover:bg-[#F0F5FF]'
-                        } transition`}
+                        className={`h-8 min-w-8 px-2 rounded-full border ${n === page
+                          ? 'border-[#3871C1] text-[#0F274A] font-medium'
+                          : 'border-[#CFE0FF] text-[#3871C1] hover:bg-[#F0F5FF]'
+                          } transition`}
                       >
                         {n}
                       </button>
