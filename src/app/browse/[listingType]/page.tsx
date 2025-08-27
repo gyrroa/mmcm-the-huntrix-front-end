@@ -30,12 +30,6 @@ export default function BrowsePropertiesPage() {
         if (!['rent', 'buy'].includes(listingType)) router.push('/');
     }, [listingType, router]);
 
-    // popularity derived from tags
-    const isPopularByTags = (tags: string[] = []) => {
-        const hotTags = new Set(['popular', 'featured', 'hot', 'trending', 'top']);
-        return tags.some(t => hotTags.has(t.toLowerCase()));
-    };
-
     // choose the right dataset then split using lease_term
     const listings = useMemo<Rent[] | Buy[]>(() => {
         return (listingType === 'rent' ? rentData : buyData) ?? [];
@@ -59,7 +53,7 @@ export default function BrowsePropertiesPage() {
                 selectedBathrooms === '' ||
                 (selectedBathrooms === '5' ? item.bath >= 5 : item.bath === Number(selectedBathrooms));
 
-            const matchesPopular = !showPopularOnly || isPopularByTags(item.tags);
+            const matchesPopular = !showPopularOnly || item.is_popular;
 
             return matchesSearch && matchesBedroom && matchesBathroom && matchesPopular;
         });
@@ -204,7 +198,7 @@ export default function BrowsePropertiesPage() {
                             name={property.name}
                             price={property.price}
                             // derive popularity for the card (if the component supports it)
-                            isPopular={isPopularByTags(property.tags)}
+                            isPopular={property.is_popular}
                             address={property.address}
                             bed={property.bed}
                             bath={property.bath}
