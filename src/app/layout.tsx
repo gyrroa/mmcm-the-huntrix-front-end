@@ -29,15 +29,27 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={plusJakartaSans.variable}>
-      <head>
-        <Script src='https://www.noupe.com/embed/01984fd9285d7c2d834d0f6cf7d0c68cb148.js' />
-      </head>
+      {/* <head>
+        <Script src='https://www.noupe.com/embed/0198ea057d447e0481f2ee18458d1e1baf1e.js' />
+      </head> */}
       <body className="antialiased">
         <ScrollProvider>
-          <Providers><HeaderNavbar />{children}</Providers>
+          <Providers>
+            <HeaderNavbar />
+            {children}
+          </Providers>
           <Footer />
         </ScrollProvider>
       </body>
+      <Script
+        src="https://app.wonderchat.io/scripts/wonderchat.js"
+        data-name="wonderchat"
+        data-address="app.wonderchat.io"
+        data-id="cmetjykiw1djrhzs77zv31xsd"
+        data-widget-size="normal"
+        data-widget-button-size="normal"
+        defer
+      ></Script>
     </html>
   );
 }
